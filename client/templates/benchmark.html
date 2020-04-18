@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>{{ hang }}'s benches</title>
+   <script src="/static/chart/2.8.0/chart.min.js"></script>
+   <link rel="stylesheet" href="/static/chart/2.8.0/chart.min.css">
+
+   <link rel="stylesheet" href="/static/semantic/dist/semantic.min.css">
+   <script src="/static/jquery.min.js"></script>
+   <script src="/static/semantic/dist/semantic.min.js"></script>
+</head>
+<body>
+<canvas id="myChart" width="600" height=900" style="float: left"{# style="height: 98vh;width: 100%;display: block;" #}></canvas>
+<div style="float: right; width: 34%; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background-color: rgba(70, 46, 124, .9)">
+   <div style="height: 45%">
+      <div style="display: inline-block">
+         <div id="clear" class="ui button" style="background-color: rgb(253, 208, 34); color: rgba(70, 46, 124, 1)">{{ _('Clear') }}</div>
+         <div class="ui action input">
+           <input type="text" placeholder="{{ _('Vehicles ...') }}" style="direction: rtl; text-align: right; width: 100px;">
+           <button id="random" class="ui button" style="background-color: rgb(253, 208, 34); color: rgba(70, 46, 124, 1)">{{ _('action') }}</button>
+         </div>
+      </div>
+      <div style="margin-top: .7em; font-size: 1.2em; color: rgba(253, 208, 34, .8)">
+         <span style="float: right; font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, .9)">{{ _('average') }}</span>
+         <span style="float: right; margin-right: 2em;">{{ _('total') }}: <span id="total" style="font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, 1)">0</span></span>
+         <span>{{ _('pointed') }}: <span id="pointed" style="font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, 1)">0</span></span>
+      </div>
+      <div style="margin-top: .7em; font-size: 1.2em; color: rgba(253, 208, 34, .8); display: block">
+         <span style="float: right; font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, .9)">{{ _('in seconds') }}</span>
+      </div>
+      <br>
+      <br>
+      <div style="margin-top: .7em; font-size: 1.2em; color: rgba(253, 208, 34, .8); display: block">
+         <span style="float: right; margin-right: 2em; direction: rtl;"><span id="paths" style="font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, 1)">0</span> {{ _('path') }}</span>
+         <span>{{ _('in') }} <span id="seconds" style="font-size: 1.1em; font-weight: bold; color: rgba(253, 208, 34, 1)">0</span> {{ _('seconds') }}</span>
+      </div>
+   </div>
+</div>
+<script>
+
+/* var init_time = new Date();
+init_time = init_time.getTime();
+console.log(init_time); */
+
+$("#clear").click(() => {
+   $.post('/v0.2/client/sims/{{ hang }}/@clear', {
+      key: "{{ key }}"
+   }, () => { window.vehicles = 0; })
+}); $("#clear").click();
+
+window.vehicles = 0;
+$("#random").click(() => {
+   val = $("#random").prev('input').val();
+   if (val != '' && !isNaN(val)) {
+      $.post('/v0.2/client/sims/{{ hang }}/{' + (parseInt(val) - window.vehicles) + '}/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}', {
+         key: "{{ key }}"
+      }, () => {
+         window.vehicles = parseInt(val);
+      });
+   }
+});
+
+window.counter = [];
+window.times = [];
+window.sum = 0;
+
+setInterval(() => {
+   $.post('/v0.2/!!/{{ hang }}/@macro;@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}', {
+      key: "{{ key }}"
+   }, (statistics) => {
+      console.log(statistics);
+      var potential = Math.max(0, statistics.num_staged == 0 ? window.vehicles : ((window.vehicles - statistics.num_staged) * statistics.sum_staged / statistics.num_staged));
+      potential += statistics.num_staged > 0 ? (window.vehicles * statistics.sum_staged / statistics.num_staged - statistics.hot) : (window.vehicles - statistics.hot);
+      // potential -= statistics.hot;
+      if (potential > 0) {
+         potential = Math.ceil(potential / 3);
+         $.post('/v0.2/client/sims/{{ hang }}/~/{' + potential + '}/@distribution=rnd-3333;@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}', {
+            key: "{{ key }}"
+         }, (response) => {});
+         var now = new Date();
+         window.counter.push(potential);
+         window.sum += potential;
+         $("#paths").html(window.sum);
+         window.times.push(now.getTime());
+         if (window.times.length > 1) {
+            total_delta = window.times[window.times.length - 1];
+            total_delta -= window.times[0];
+            $("#seconds").html(Math.round(total_delta / 1000 + Math.random() * 2 - 1));
+            // console.log(total_delta);
+            // console.log(Math.round( window.sum * 100 + Number.EPSILON ) / 100);
+            $("#total").html(Math.round( window.sum * 1000 / total_delta * 100 + Number.EPSILON ) / 100);
+
+            pointed_delta = window.times[window.times.length - 1];
+            pointed_delta -= window.times[Math.max(window.times.length - 10, 0)];
+            pointed_sum = window.counter.slice(Math.max(window.times.length - 10, 0), window.times.length).reduce((a, b) => a + b, 0);
+            $("#pointed").html(Math.round( pointed_sum * 1000 / pointed_delta * 100 + Number.EPSILON ) / 100);
+
+         }
+         chart.data.labels.push(now.getMinutes() + ':' + now.getSeconds());
+         chart.data.datasets[0].data.push(Math.ceil(potential / 3));
+         if (chart.data.labels.length > 100) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+         }
+         chart.update();
+      }
+   });
+}, 3000);
+
+{% if 'algorithm' not in request.args or request.args['algorithm'][0] != 'none' %}
+setInterval(() => {
+   $.post('/v0.2/{{ hang }}/!!!/' + '{{ request.args['algorithm'][0] if 'algorithm' in request.args else 'grd' }}' + '/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}', {key: "{{ key }}"})
+}, 10000);
+{% endif %}
+
+setInterval(() => {
+   $.post('/v0.2/client/sims/{{ hang }}/@life=60', {key: "{{ key }}"});
+}, 60 * 1000);
+
+Chart.pluginService.register({
+            beforeDraw: function (chart, easing) {
+                if (chart.config.options.chartArea && chart.config.options.chartArea.backgroundColor) {
+                    var ctx = chart.chart.ctx;
+                    var chartArea = chart.chartArea;
+
+                    ctx.save();
+                    ctx.fillStyle = chart.config.options.chartArea.backgroundColor;
+                    ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+                    ctx.restore();
+                }
+            }
+        });
+
+var config = {
+  type: 'line',
+  data: {
+    labels:["ones","upon","a","time", "fw"],
+    borderColor : "#fffff",
+    datasets: [
+      {
+        data: ["2","3","1","4", "10"],
+        borderColor : "#fff",
+        borderWidth : "1",
+        hoverBorderColor : "#000",
+        backgroundColor: ["rgba(1, 97, 156, .1)"],
+        hoverBackgroundColor: ["#f38b4a"]
+      }]
+  },
+  options: {
+    scales: {
+      yAxes: [{
+        ticks: {
+          beginAtZero: true,
+          suggestedMax: 7
+        }
+      }],
+    },
+    responsive: false,
+    chartArea: {
+        backgroundColor: 'rgba(70, 46, 124, .9)'  //'rgba(1, 97, 156, 1)'
+    }
+  }
+};
+
+var ctx = document.getElementById('myChart').getContext('2d');
+chart = new Chart(ctx, config);
+</script>
+</body>
+</html>

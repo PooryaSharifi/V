@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>{% block title %} Layout {% endblock %}</title>
+   {% if ractive %} <script src="/static/ractive.js"></script> {% endif %}
+   <link rel="stylesheet" href="/static/semantic/dist/semantic.min.css">
+   <style type="text/css">
+      @font-face {
+          font-family: "light";
+          src: url(/static/font/4.2/light.ttf) format("truetype");
+      }
+      @font-face {
+          font-family: "regular";
+          src: url(/static/font/4.2/regular.ttf) format("truetype");
+      }
+      @font-face {
+          font-family: "bold";
+          src: url(/static/font/4.2/bold.ttf) format("truetype");
+      }
+      html, body, button, div, a, span {
+         font-family: "regular", Lato, 'Helvetica Neue', Verdana, Tahoma !important;
+      }
+      h1, h2, h3, h4, h5, h6, .menu > span {
+         font-family: "bold", lato, halvetica, Verdana, Tahoma !important;
+         font-weight: 400 !important;
+      }
+
+      #panel > table :not(i) {
+         font-family: Lato, 'Helvetica Neue' !important;
+      }
+
+      #macro-bar :not(i), #macro-bar {
+         font-family: Lato, 'Helvetica Neue' !important;
+      }
+   </style>
+   <script src="/static/jquery.min.js"></script>
+   <script src="/static/semantic/dist/semantic.min.js"></script>
+   {% block import %}{% endblock %}
+   {% block style %}{% endblock %}
+</head>
+<body>
+   {% if not no_sidebar %}
+      {% include "sidebar.html" %}
+      <main style="display: inline-block; margin-left: -3px; width: calc(100% - 4em); clear: both; margin-left: 4em">
+   {% else %}
+      <main>
+   {% endif %}
+      {% block main %}{% endblock %}
+   </main>
+</body>
+</html>

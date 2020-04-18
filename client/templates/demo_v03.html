@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+   <script src="/static/jquery.min.js"></script>
+</head>
+<body style="margin:0px;padding:0px;overflow:hidden; height: 100%">
+<iframe id="i-frame" src="{{ url }}" frameborder="0" style="overflow:hidden;height:100%;width:100%" height="100%" width="100%"></iframe>
+<script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-messaging.js"></script>
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#config-web-app -->
+<script>
+  // Your web app's Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyBYZWVJBC033SPzHhyyJmVkQfo1U-okYOE",
+    authDomain: "express-1516177074533.firebaseapp.com",
+    databaseURL: "https://express-1516177074533.firebaseio.com",
+    projectId: "express-1516177074533",
+    storageBucket: "express-1516177074533.appspot.com",
+    messagingSenderId: "197435492753",
+    appId: "1:197435492753:web:6c0dcbb5a87b9f7b"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  var messaging = firebase.messaging();
+  messaging.usePublicVapidKey("BLfKOKE-XahtbbEDFTiF4MJAvQHCKCfYvukiS5Nf8k2hnF5l_6U5ytCUhomzzChjLrzykeWxfF3lLEXZLrSmRD8");
+
+  messaging.requestPermission().then(function() {
+    console.log('Notification permission granted.');
+    messaging.getToken().then(function(token) {
+      console.log(token);
+      for (var territory=0; territory < 4; territory ++)
+         $.post('/v0.2/{{ hang }}/' + territory + '/@fcm=' + token, {key: '{{ key }}'});
+    });
+  }).catch(function(err) {
+    console.log('Unable to get permission to notify.', err);
+  });
+
+  messaging.onMessage(function(payload) {
+    var frame = document.getElementById('i-frame');
+    frame.contentWindow.postMessage(payload.data.porter, "{{ url }}");
+    console.log('we sent: ' + payload.data.porter);
+    // ractive.set('porters.' + payload.data.porter + '.at', true);
+  });
+
+// ## here listener
+window.addEventListener("message", function(e) {
+   var _url = e.data;
+   if (_url.includes('31.184.135.150'))
+      _url = _url.replace('31.184.135.150', 'hooshe.ir');
+   if (_url.includes('0.0.0.0'))
+      _url = _url.replace('0.0.0.0', 'localhost');
+   window.history.replaceState('page2', 'Title', _url);
+}, false);
+</script>
+</body>
+</html>

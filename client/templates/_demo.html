@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <style>
+      html, body {
+         height: 100%;
+         padding: 0;
+         margin: 0;
+      }
+      #map {
+        height: 100%;  /* The height is 400 pixels */
+        width: 100%;  /* The width is the width of the web page */
+      }
+      .ui.button.map {
+         margin-right: 15px;
+         margin-top: 15px;
+         box-shadow: 0px 3px 10px -3px #000 !important;
+      }
+      #google_map_canvas * {
+         cursor: inherit;
+      }
+   </style>
+   <link rel="stylesheet" href="/static/semantic/dist/semantic.min.css">
+   <script src="/static/jquery.min.js"></script>
+   <script src="/static/semantic/dist/semantic.min.js"></script>
+</head>
+<body>
+<div id="map"></div>
+<script>
+   function initMap() {
+      alert('few');
+      key = JSON.parse($.ajax({
+         type: "GET",
+         url: 'http://' + window.location.host.split(':')[0] + ':5002/key',
+         async: false
+      }).responseText).key[1];
+      var uluru = {lat: 35.7122167,lng: 51.3645588};
+      var map = new google.maps.Map(document.getElementById('map'), {
+         zoom: 12,
+         center: uluru,
+         fullscreenControl: false,
+      });
+
+      colors = [
+         ['#000', '#fff'],
+         ['#f00', '#f88'],
+         ['#0f0', '#8f8'],
+         ['#00f', '#88f'],
+
+         ['#d800d1', '#db6fd5'],
+         ['#008bd6', '#51a7d6'],
+         ['#00eaf2', '#75f1f9'],
+         ['#a47037', '#bfa283'],
+
+         ['#ff147a', '#dd87ac'],
+         ['#628742', '#93b874'],
+         ['#5d7700', '#aaff00'],
+         ['#ffff00', '#ffff7f'],
+      ];
+
+      var triangle = function(lat, lng, c) {
+         var triangleCoords = [
+            {lat: lat + .00065, lng: lng},
+            {lat: lat - .0006, lng: lng + .000875},
+            {lat: lat - .0006, lng: lng - .000875},
+            {lat: lat + .00065, lng: lng},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: colors[c][0],
+            strokeOpacity: 1,
+            strokeWeight: 1,
+            fillColor: colors[c][1],
+            fillOpacity: 0.85,
+            map: map
+         });
+
+         return t;
+      };
+
+      var square = function(lat, lng, c) {
+         var triangleCoords = [
+            {lat: lat + .000725, lng: lng + .000875},
+            {lat: lat - .000725, lng: lng + .000875},
+            {lat: lat - .000725, lng: lng - .000875},
+            {lat: lat + .000725, lng: lng - .000875},
+            {lat: lat + .000725, lng: lng + .000875},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: colors[c][0],
+            strokeOpacity: 1,
+            strokeWeight: 1,
+            fillColor: colors[c][1],
+            fillOpacity: 0.85,
+            map: map
+         });
+
+         return t;
+      };
+
+      var line = function(s, t, c) {
+         var flightPlanCoordinates = [
+            {lat: s[0], lng: s[1]},
+            {lat: t[0], lng: t[1]},
+         ];
+         var flightPath = new google.maps.Polyline({
+            path: flightPlanCoordinates,
+            geodesic: true,
+            strokeColor: colors[c][0],
+            strokeOpacity: 0.2,
+            strokeWeight: 1,
+            map: map
+         });
+         return flightPath;
+      }
+
+      var path_marker = function(s, t) {
+         sq = square(s[0], s[1], 0);
+         tr = triangle(t[0], t[1], 0);
+         l = line(s, t, 0);
+         return [sq, tr, l];
+      }
+
+      porters_date = 0;
+      porters = {};
+      paths_date = 0;
+      paths = {};
+      pcs = {};
+
+      setInterval(function() {
+         $.post('/v0.1/!!/food/paths/@undone', {key: key}, function(_paths) {
+            for(var i=0;i<_paths.length;i++) {
+               var _id = _paths[i]._id;
+               var head = _paths[i].points[1].location;
+               var tail = _paths[i].points[0].location;
+               if (!(_id in paths)) {
+                  paths[_id] = {marker: path_marker(head, tail)}
+               }
+               paths[_id].head = head;
+               paths[_id].tail = tail;
+               paths[_id]._date = paths_date;
+               if (!('color' in paths[_id]))
+                  paths[_id].color = 0;
+               else if (_paths[i].porters.length && paths[_id].color === 0) {
+                  color = Math.floor(Math.random() * 11 + 1);
+                  paths[_id].marker[0].setOptions({strokeColor: colors[color][0], fillColor: colors[color][1]});
+                  paths[_id].marker[1].setOptions({strokeColor: colors[color][0], fillColor: colors[color][1]});
+                  paths[_id].marker[0].setOptions({strokeColor: colors[color][0]});
+                  paths[_id].color = color;
+               }
+               if (paths[_id].color > 0) {
+                  var porter = _paths[i].porters[0].porter;
+                  pcs[porter] = paths[_id].color;
+               }
+            }
+            for (_id in paths) {
+               if (paths[_id]._date != paths_date) {
+                  paths[_id].marker[0].setMap(null);
+                  paths[_id].marker[1].setMap(null);
+                  paths[_id].marker[2].setMap(null);
+                  delete paths[_id];
+               }
+            }
+            paths_date = 1 - paths_date;
+         });
+
+         $.post('/v0.1/!!/food/porters/@all', {key: key}, function(_porters) {
+            for(var i=0;i<_porters.length;i++) {
+               var name = _porters[i].porter;
+               var location = _porters[i].location;
+               if (!(name in porters)) {
+                  porters[name] = {
+                     marker: new google.maps.Circle({
+                                strokeColor: '#000',
+                                strokeOpacity: 1,
+                                strokeWeight: 2,
+                                fillColor: '#fff',
+                                fillOpacity: 1,
+                                map: map,
+                                center: uluru,
+                                radius: 80
+                             })
+                  }
+               }
+               porters[name].marker.setCenter({lat: location[0], lng: location[1]});
+               if (name in pcs) {
+                  porters[name].marker.setOptions({strokeColor: colors[pcs[name]][0], fillColor: colors[pcs[name]][1]});
+               } else {
+                  porters[name].marker.setOptions({strokeColor: colors[0][0], fillColor: colors[0][1]});
+               }
+               porters[name].location = location;
+               porters[name]._date = porters_date;
+            }
+            for (name in porters) {
+               if (porters[name]._date != porters_date) {
+                  porters[name].marker.setMap(null);
+                  delete porters[name];
+               }
+            }
+            porters_date = 1 - porters_date;
+         });
+         for (var _key in pcs) delete pcs[_key];
+
+      }, 2000);
+
+      var order = $('<div class="ui map big blue circular icon button"><i class="dropbox icon"></i></div>');
+      var porter = $('<div class="ui map big red circular icon button"><i class="motorcycle icon"></i></div>');
+      var state = 0;
+      var head;
+      function on(element) {
+         element.html('<i class="times icon">');
+         map.setOptions({
+            draggable: false,
+            // zoomControl: false,
+            scrollwheel: false,
+            // disableDoubleClickZoom: false,
+            draggableCursor: 'crosshair',
+            // draggingCursor: 'crosshair',
+         });
+      }
+      function un(element, icon) {
+         element.html('<i class="' + icon + ' icon">');
+         map.setOptions({
+            draggable: true,
+            // zoomControl: false,
+            scrollwheel: true,
+            // disableDoubleClickZoom: true,
+            draggableCursor: 'drag',
+            draggingCursor: 'move',
+         });
+      }
+      porter.bind('click', function(){
+         if (state == 0) {
+            state = 1;
+            on(porter);
+         } else if (state == 1) {
+            state = 0;
+            un(porter, 'motorcycle');
+         }
+      });
+
+      order.bind('click', function() {
+         if (state == 0) {
+            state = 2;
+            on(order);
+         } else if (state == 2 || state == 3) {
+            un(order, 'dropbox');
+            state = 0;
+         }
+      });
+      map.controls[google.maps.ControlPosition.RIGHT_TOP].push(order[0]);
+      map.controls[google.maps.ControlPosition.RIGHT_TOP].push(porter[0]);
+
+      google.maps.event.addListener(map, 'click', function(event) {
+         latLng = event.latLng;
+         if (state == 1) {
+            $.get('http://' + window.location.host.split(':')[0] + ':5002/@' + latLng.lat() + ',' + latLng.lng(), function() {});
+            state = 0;
+            un(porter, 'motorcycle');
+         }
+         if (state == 3) {
+            $.post('/v0.1/food/~' + head.lat() + ',' + head.lng() + ';' + latLng.lat() + ',' + latLng.lng(), data={
+               'key': key,
+               'volume': 1,
+               'priority': 1,
+               'delay': 400
+            });
+            un(order, 'dropbox');
+            state = 0;
+         }
+         if (state == 2) {
+            head = latLng;
+            state = 3;
+         }
+         return false;
+      });
+   }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvQr0q3jxqbAv4ju68H9H8YEMJBmXZGl0&callback=initMap"></script>
+</body>
+</html>

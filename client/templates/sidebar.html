@@ -1,0 +1,715 @@
+<header
+      style="display: inline-block; width: 4em; clear: both; vertical-align: top; position: fixed; height: 100%; z-index: 1001">
+   <div style="background-color: grey; height: 100%; align-items: center; text-align: center; position: relative; z-index: -11">
+      <style>
+         .logistics:hover .add {
+            display: block;
+         }
+
+         .logistics:hover, .pause.icon:hover, .play.icon:hover, .stop.icon:hover, .cog.icon:hover, .user.icon:hover, .helper.icon:hover, .times.icon:hover {
+            opacity: .7;
+            cursor: pointer;
+         }
+
+         #sidebar-buttons  i.icon {
+            margin-bottom: .2em;
+         }
+
+         #sidebar-buttons {
+            z-index: -10;
+         }
+
+         .logistics .tag, .logistics .status {
+            position: absolute;
+            margin-left: 3.2em;
+            background-color: rgba(152, 115, 15, .7);
+            border-radius: 200px;
+            padding: 0px 3px 0px 3px;
+            color: white;
+            font-size: .8em;
+            font-weight: bold;
+         }
+
+         .logistics .status {
+            width: 10px;
+            height: 10px;
+            background-color: #2f1 !important;
+            margin-top: 2.6em;
+            margin-left: 3.4em !important;
+         }
+
+         .logistics.none .status {
+            display: none;
+         }
+
+         .logistics.block .status {
+            display: block;
+         }
+
+         .logistics .input {
+            position: absolute; /* relative */
+            width: 7.3em;
+            height: 3.3em;
+            background-color: #eee;
+            z-index: -1;
+            margin-top: -3.5em;
+            margin-left: .2em;
+            border-radius: 500px;
+            display: none;
+         }
+
+         .logistics.block:hover .input {
+            display: block;
+         }
+
+         input:focus{
+            outline: none;
+         }
+
+         #setting label {
+            color: white;
+         }
+
+         #setting .title .hover {
+            display: none;
+            top: -1.2em;
+            margin-left: .5em;
+         }
+
+         #setting .title:hover .hover, #setting .title.active .hover {
+            display: inline-block;
+            position: relative;
+         }
+
+         #setting .content {
+            direction: rtl;
+            margin-right: .5em;
+         }
+
+         #setting .ui.radio.checkbox {
+            margin-right: .7em;
+         }
+      </style>
+      <i class="large circular inverted grey user icon" style="margin-top: .5em"
+         onclick="window.location.href = '{{ '/v0.2/client/@' + hang + '/profile?key=' + key if hang and key else '' }}'"></i>
+      <div class="ui left pointing dropdown icon" style="margin-top: .3em;">
+         <i class="large circular inverted grey info icon"></i>
+         <div class="menu">
+            {% set endpoints = request.url.split('/client')[1].split('/') %}
+            {% set last_point = endpoints[-1] if endpoints[-1] or (endpoints | length) == 1 else endpoints[-2] %}
+            {% if '@' in last_point %}
+            <div class="header" style="max-width: 35em; overflow-wrap: break-word; word-wrap: break-word; white-space: initial; text-transform: initial; font-weight: 400; font-size: 1em; direction: rtl; text-align: right">
+               <p>
+                  به قسمت سیمولیشن و پنل مدیریت ناوگانتان خوش‌آمدید. نقشه‌ای که ملاحظه می‌کنید, شامل تمام سفارشات و رانندگان شماست. رانندگان یا حقیقی هستند و به وسیله اپ موبایل در حال تعامل با سرور هستند و یا ربات هستند که می‌توانید تعدادشان را مشخص نمایید. در زیر نقشه لیستی شامل تمامی رانندگان به همراه سفارشی که به آنها وصل شده وجود دارد. زیر این لیست نوار اطلاعات کلی شامل جمیع مسافت طی‌شده توسط رانندگانتان به همراه زمانی که درحال خدمت‌رسانی بوده‌اند, قابل مشاهده می‌باشد. در قسمت راست آن دکمه قرمز الگوریتم قابل مشاهده است. که الگوریتم مچینگ به‌وسیله ‌آن اجرا می‌شود.
+               </p>
+            </div>
+            <div class="divider"></div>
+            <div class="header" style="max-width: 35em; overflow-wrap: break-word; word-wrap: break-word; white-space: initial; text-transform: initial; font-weight: 400; font-size: 1em; direction: rtl; text-align: right">
+               <p>
+                  نوار سمت چپ, شامل دکمه‌های کنترلی سیمولیشن و پنل مدیریتی شما می‌باشد. بالا پروفایل و تنظیمات آن می‌باشد. قسمت شامل چهار دکمه خروج از سیمولیشن, حرکت, تعداد سفارشات, تعداد رانندگان مجازی هست و درآخر تنظیمات پیشرفته شامل انتخاب الگوریتم, ... است. همچنین دو دکمه قرمز و آبی رنگ در نقشه قسمت بالا سمت راست وجود دارد. دکمه آبی رنگ را فشار دهید و با انتخاب دو نقطه برروی نقشه یک سفارش مجازی ایجاد کنید. انتخاب دکمه قرمز و سپس نقطه درون نقشه سبب ایجاد راننده‌ای مجازی درهمان نقطه می‌شود.
+               </p>
+            </div>
+            <div class="divider"></div>
+            <div class="header" style="font-size: .85em;">
+               <i class="tags icon"></i>
+               علایم روی نقشه
+            </div>
+            <div class="item">
+               <div class="ui red empty circular label"></div>
+               راننده
+            </div>
+            <div class="item">
+               <div class="ui blue empty label" style="border-radius: 0; padding: .5833em .5833em;"></div>
+               مبدا, فرستنده, انبار
+            </div>
+            <div class="item" style="direction: rtl">
+               مقصد, گیرنده (با ایستادن روی آن‌ها لینک در نوار پایین نمایان می‌شود)
+               <svg height="1.2em" width="1.2em" style="margin-right: .78571429rem;">
+                  <polygon points="9,2 0,18 18,18" class="triangle"/>
+               </svg>
+            </div>
+            {% else %}
+            <div class="header" style="font-size: 1em; text-align: center">
+               راهنمای سیمولیشن و پنل‌مدیریت
+            </div>
+            <div class="item">
+               ابتدا وارد پنل مدیریت ناوگانتان شوید
+            </div>
+            {% endif %}
+         </div>
+      </div>
+      <span class="logistics">
+         <div class="tag" style="background-color: #EAAE00; padding-top: 0px; padding-down: 0px; padding-left: 4px; padding-right: 4px; margin-top: 3px">new</div>
+         <i class="large circular inverted grey accessible icon icon" style="margin-top: .5em"
+            onclick="window.location.href = '{{ '/v0.2/client/@' + hang + '/benchmark?vehicles=0&algorithm=' + (request.args['algorithm'][0] if 'algorithm' in request.args else 'grd') + '&fastness=' + (request.args['fastness'][0] if 'fastness' in request.args else '1') + '&key=' + key if hang and key else '' }}'"
+         ></i>
+      </span>
+      <div id="sidebar-buttons" style="position: absolute; bottom: .5em">
+         <i class="large circular inverted grey stop icon"></i>
+         <i class="large circular inverted grey {{ 'pause' if 'play' not in request.args or request.args['play'][0] == 'true' else 'play' }} icon"></i>
+         <span id="path-icon" class="logistics none">
+            <div class="tag">0</div>
+            <div class="status"></div>
+            <i class="large circular inverted grey dolly flatbed icon"></i>
+            <div class="input">
+               <input id="rate-input" type="text" style="background: transparent; border: none; line-height: 3em; margin-left: 3.4em;"
+                      value="{{ request.args['rate'][0] if 'rate' in request.args else 1 }}" placeholder="vehicles"/>
+            </div>
+         </span>
+         <span id="porter-icon" class="logistics">
+            <div class="tag">0</div>
+            <i class="large circular inverted grey motorcycle icon"></i>
+         </span>
+         <i class="large circular inverted grey cog icon"></i>
+      </div>
+      <script>
+         $(function() {
+            $('.ui.dropdown').dropdown();
+            {% if '@' in last_point %}
+               function getCookie(cname) {
+                 var name = cname + "=";
+                 var decodedCookie = decodeURIComponent(document.cookie);
+                 var ca = decodedCookie.split(';');
+                 for(var i = 0; i <ca.length; i++) {
+                   var c = ca[i];
+                   while (c.charAt(0) == ' ') {
+                     c = c.substring(1);
+                   }
+                   if (c.indexOf(name) == 0) {
+                     return c.substring(name.length, c.length);
+                   }
+                 }
+                 return "";
+               }
+               if (getCookie('helped') != 'true')
+                  $('.ui.dropdown').click();
+               document.cookie = "helped=true";
+            {% endif %}
+            $('.ui.accordion').accordion();
+
+            window.setParam = function(key, value) {
+               try {
+                  var url = window.location.href;
+                  url = new URL(url);
+                  if(value === undefined)
+                     url.searchParams.delete(key);
+                  else
+                     url.searchParams.set(key, value);
+                  window.history.replaceState('page2', 'Title', url.href);
+                  if (parent) {
+                     parent.postMessage(url.href, "{{ url }}");
+                  }
+               } catch {}
+            }
+
+            $('#sidebar-buttons .stop.icon').click(function() {
+               var path = $('#path-icon.block');
+               if (path) path.click();
+               $.post('/v0.2/client/sims/{{ hang }}/@clear', {key: window.ractive.get('key')}, function() {
+                  var pause = $('#sidebar-buttons').find('.pause.icon');
+                  if (pause) {
+                     pause.removeClass('pause').addClass('play');
+                     window.setParam('play', 'false');
+                  }
+               });
+            });
+
+            $('#sidebar-buttons').on('click', '.play.icon', function(eve) {
+               $.post('/v0.2/client/sims/{{ hang }}/@play=true', {key: window.ractive.get('key')}, function() {
+                  $(eve.target).removeClass('play').addClass('pause');
+                  window.setParam('play', 'true');
+                  window.vitalization_loop = setInterval(function() {
+                     $.post('/v0.2/client/sims/{{ hang }}/@life=60', {key: ractive.get('key')}, function() {});
+                  }, 60 * 1000);
+               });
+            });
+
+            $('#sidebar-buttons').on('click', '.pause.icon', function(eve) {
+               $.post('/v0.2/client/sims/{{ hang }}/@play=false', {key: window.ractive.get('key')}, function() {
+                  $(eve.target).removeClass('pause').addClass('play');
+                  window.setParam('play', 'false');
+                  clearInterval(window.vitalization_loop);
+               });
+            });
+
+            window.events = [];
+            window.orderType = '{{ request.args['orderType'][0] if 'orderType' in request.args else 'w' }}';
+            base_rate = 10000;
+            window.looping = false;
+            timeSegment = parseInt(12 * 3600 / {{ request.args['fastness'][0] if 'fastness' in request.args else '1' }});
+            function loop() {
+               if (window.looping)
+                  $.post('/v0.2/client/sims/{{ hang }}/~/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}{{ ('?auto=' + request.args['auto'][0]) if 'auto' in request.args else '' }}', {key: ractive.get('key'), type: window.orderType});
+               d = new Date();
+               d = (d.getHours() * 60 + d.getMinutes()) * 60 + d.getSeconds();
+               d %= timeSegment;
+               d = d / timeSegment * 4;
+               var k = d - parseInt(d);
+               d = parseInt(d);
+               d = window.graphData[d].Y * k + window.graphData[(d + 1) % 4].Y * (1 - k) + .00001;
+               d = 100 / d;
+               $('#rate-input').val(d.toFixed(2));
+               setTimeout(function() {loop();}, d * 1000);
+            } loop();
+
+            $('#path-icon').click(function() {
+               $.post('/v0.2/client/sims/{{ hang }}/~/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}{{ ('?auto=' + request.args['auto'][0]) if 'auto' in request.args else '' }}', {key: ractive.get('key'), type: window.orderType});
+            });
+            /* $('#sidebar-buttons').on('click', '#path-icon.none', function(eve) {
+               if ($(eve.target).is('.input') || $(eve.target).is('input')) return;
+               rate = $("#path-icon input").val();
+               if (isNaN(rate)) return;
+               rate = parseFloat(rate);
+            });
+
+            $('#sidebar-buttons').on('click', '#path-icon.block', function(eve) {
+               if ($(eve.target).is('.input') || $(eve.target).is('input')) return;
+            }); */
+
+            {% if 'ordering' in request.args and request.args['ordering'][0] == 'true' %}
+               $('#looper').click();
+            {% endif %}
+
+            $("#path-icon input").on("keyup", function() {
+               var rate = $(this).val();
+               window.setParam('rate', rate);
+            });
+
+            /* $("#path-icon input").on("keyup", function() {
+               var rate = $(this).val();
+               window.events.push((new Date()).getTime());
+               clearInterval(window.interval);
+               setTimeout(function() {
+                  now = (new Date()).getTime();
+                  delay = now - window.events[window.events.length - 1];
+                  console.log(delay);
+                  if (delay >= 650) {
+                     if (!isNaN(rate)) {
+                        rate = parseInt(rate);
+                        console.log(rate);
+                        // clearInterval(window.interval);
+                        window.interval = setInterval(function() {
+                           $.post('/v0.2/client/sims/{{ hang }}/~', {key: ractive.get('key')});
+                        }, base_rate / rate);
+                     }
+                  }
+               }, 650);
+            }); */
+
+            $('.cog.icon').click(function() {
+               $('#porter').css('display', 'none');
+               var setting = $('#setting');
+               setting.css('display', setting.css('display') == 'none' ? 'block' : 'none');
+            });
+
+            $('.motorcycle.icon').click(function() {
+               $('#setting').css('display', 'none');
+               var porter = $('#porter');
+               porter.css('display', porter.css('display') == 'none' ? 'block' : 'none');
+            });
+
+            {% set algorithm = request.args['algorithm'][0] if 'algorithm' in request.args else 'grd' %}
+            window.algorithm = '{{ algorithm }}';
+            window.protocols = {{ ('"' + request.args['protocols'][0][1: ] + '".split("-")') if 'protocols' in request.args else '[]' }};
+
+            $('#algorithm .checkbox').checkbox({
+               onChecked: function() {
+                  if($(this).attr('capacitated') == 'true') {
+                     $('#capacity').attr('style', 'display: flex !important; direction: ltr');
+                  } else {
+                     $('#capacity').attr('style', 'display: none !important; direction: ltr');
+                  }
+                  window.algorithm = $(this).val();
+                  window.setParam('algorithm', $(this).val());
+               }
+            });
+            $('#capacity input').change(function() {
+               try {
+                  window.capacity = parseInt($(this).val());
+                  window.setParam('capacity', window.capacity);
+               } catch (err) {}
+            });
+            if ($("#algorithm .checkbox input[checked='checked']").attr('capacitated') == 'false')
+               $('#capacity').attr('style', 'display: none !important; direction: ltr');
+            else
+               $('#capacity').attr('style', 'display: flex !important; direction: ltr');
+            $('#orderType .checkbox').checkbox({
+               onChecked: function() {
+                  window.orderType = $(this).val();
+                  window.setParam('orderType', window.orderType);
+               }
+            });
+
+            $('#protocols .checkbox').checkbox({
+               onChecked: function() {
+                  if (window.protocols.indexOf($(this).val()) > -1) return;
+                  window.protocols.push($(this).val());
+                  window.setParam('protocols', '-' + window.protocols.join('-'));
+               },
+               onUnchecked: function() {
+                  window.protocols.splice(window.protocols.indexOf($(this).val()), 1);
+                  if(window.protocols.length > 0)
+                     window.setParam('protocols', '-' + window.protocols.join('-'));
+                  else {
+                     window.setParam('protocols');
+                  }
+               }
+            });
+
+            $('#delete-many').click(function() {
+               var table = $('#table');
+               if (!table) return;
+               table.find('.slider.checkbox input:checked').each(function(i, input) {
+                  input = $(input);
+                  var key = input.val();
+                  $.ajax({
+                     type: 'DELETE',
+                     url: '/v0.2/client/sims/{{ hang }}/' + key,
+                     data: {key: '{{ key }}'},
+                  }).done(function(response) {
+                     console.log(response);
+                  });
+               })
+            });
+
+            $('#spy').click(function() {
+               var table = $('#table');
+               $('#setting').css('display', 'none');
+               if (!table) return;
+               table.find('.slider.checkbox input:checked').each(function(i, input) {
+                  input = $(input);
+                  var key = input.val();
+                  $.post('/v0.2/!/{{ hang }}/' + key + '/@fake=' + Math.ceil(4 / {{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}), {key: window.ractive.get('key')}, function(response) {
+                     if (response['deviation'] > 100)
+                        window.ractive.set('porters.' + key + '.guilty', true);
+                     else
+                        window.ractive.set('porters.' + key + '.guilty', false);
+                     // alert('d: ' + response['deviation']);
+                     input.closest('.checkbox').checkbox('uncheck');
+                  })
+               })
+            });
+
+            $('#lazy').click(function() {
+               var table = $('#table');
+               $('#setting').css('display', 'none');
+               if (!table) return;
+               table.find('.slider.checkbox input:checked').each(function(i, input) {
+                  input = $(input);
+                  var key = input.val();
+                  $.post('/v0.2/!/{{ hang }}/' + key + '/@lazy=' + Math.ceil(4 / {{ request.args['fastness'][0] if 'fastness' in request.args else '1' }}), {key: window.ractive.get('key')}, function(response) {
+                     if (response['deviation'] > 100)
+                        window.ractive.set('porters.' + key + '.lazy', true);
+                     else
+                        window.ractive.set('porters.' + key + '.lazy', false);
+                     // alert('d: ' + response['deviation']);
+                     input.closest('.checkbox').checkbox('uncheck');
+                  })
+               })
+            });
+         });
+
+      </script>
+   </div>
+</header>
+<div id="porter" style="display: none; height: 40%; width: 300px; background-color: grey; position: fixed; z-index: 100; bottom: 0; margin-left: 4em; box-shadow: -7px 6px 30px 0px; padding-top: .5em; text-align: center;">
+   <p>
+      <div class="ui input">
+         <input id="new-number" style="direction: rtl; text-align: right;" type="text" placeholder="شماره همراه ..">
+      </div>
+   </p>
+   <p>
+      <div class="ui input">
+         <input id="new-password" style="direction: rtl; text-align: right;" type="text" placeholder="رمز عبور ..">
+      </div>
+   </p>
+   <div id="new-porter" class="red ui button">ایجاد</div>
+   <script>
+      $('#new-porter').click(function() {
+         $('#new-porter').addClass('loading');
+         var number = $('#new-number').val();
+         var password = $('#new-password').val();
+         $.post('/v0.2/{{ hang }}/' + number + '/@password=' + password, {key: '{{ key }}'}, function(response) {
+            if (! response['SUCCESS']) return; // error
+            $.ajax({
+               type: 'PUT',
+               url: '/v0.2/{{ hang }}/' + number + '/@privilege=p',
+               data: {key: '{{ key }}'},
+            }).done(function(response) {
+               $('#new-porter').removeClass('loading');
+               $('#new-porter').addClass('icon');
+               $('#new-porter').html('<i class="check icon"></i>');
+               setInterval(function() {
+                  $('#new-porter').removeClass('icon');
+                  $('#new-porter').html('ایجاد');
+               }, 700);
+               console.log(response.key);
+
+            });
+
+         });
+      });
+   </script>
+</div>
+<div id="setting"
+     style="overflow-y: scroll; display: block; height: 80%; width: 300px; background-color: grey; position: fixed; z-index: 1000; bottom: 0; margin-left: 4em; box-shadow: -7px 6px 30px 0px; padding-top: .5em;">
+   <div class="ui inverted accordion" style="color: white">
+      <div class="title">
+         <div class="custom tiny icon" style="background-image: url(/static/img/routing.jpg);"></div>
+         <span class="hover">الگوریتم</span>
+      </div>
+      <div class="content">
+         <p class="transition hidden" style="text-align: center">
+            بر اساس نوع و نیاز‌مندی کسب‌وکارتان یکی از روش‌ها را انتخاب, و آنرا آزمایش کنید.
+         </p>
+         <div class="ui form">
+            <div id="algorithm" class="grouped fields">
+               <label>برروی گزینه دلخواه فشار دهید:</label>
+               {% for (name, value, capacitated) in [('حریصانه', 'grd', False), ('کمینه مچینگ وزندار', 'hng', False), ('فروشنده دوره‌گرد حریصانه', 'gkh', True), ('فروشنده دوره‌گرد تقویت شده', 'bkh', True), ('وصله دار', 'bh', True), ('کمینه مچینگ وصله دار', 'h2', True)] %}
+               <div class="field">
+                  <div class="ui radio checkbox">
+                     <input type="radio" name="algorithm" {{ 'checked="checked"' if value == algorithm else '' }}
+                     capacitated={{ 'true' if capacitated else 'false' }} value="{{ value }}">
+                     <label>{{ name }}</label>
+                  </div>
+               </div>
+               {% endfor %}
+            </div>
+         </div>
+         <div style="height: 6px;"></div>
+         <div>
+            <div id="capacity" class="ui fluid right labeled left icon input" style="direction: ltr; display: none !important">
+              <i class="box icon"></i>
+              <input type="text" value="{{ request.args['capacity'][0] if 'capacity' in request.args else '' }}" placeholder="{{ _('Capacity') }}">
+              <a class="ui red tag label">
+                 {{ _('Action') }}
+              </a>
+            </div>
+         </div>
+         <div style="height: 6px;"></div>
+         <p class="transition hidden">
+            پروتوکول‌ها:
+         </p>
+         <div id="protocols">
+            {% for value, title in [('filter', 'فیلتر سفارشات آینده'), ('extend', 'اولویت با دیر شده ها'), ('expected', 'ازپیش آزاد کردن پیک‌ها')] %}
+            <div class="ui checkbox" style="margin-right: 1em; margin-bottom: .5em;">
+               <input type="checkbox" name="protocols" value="{{ value }}" {{ 'checked="checked"' if 'protocols' in request.args and value in request.args['protocols'][0] else '' }}>
+               <label>{{ title }}</label>
+            </div>
+            {% endfor %}
+         </div>
+      </div>
+      <div class="title active">
+         <div class="custom tiny icon" style="overflow: hidden">
+            <i class="large circular inverted grey flatbed dolly icon" style="margin-left: -2px; margin-top: -2px"></i>
+         </div>
+         <span class="hover">ترکیب سفارشات</span>
+      </div>
+      <div class="content active" style="text-align: center">
+         <p class="transition visible">
+            دراین قسمت نرخ ساخت سفارشات را مشخص کنید تابه میزان کارایی کانفیگ پی‌ببرید.
+         </p>
+         <canvas id="graph" width="285" height="190" style="background: white; margin-right: -10px;"></canvas>
+         <div class="ui form" style="text-align: right">
+            <div id="orderType" class="grouped fields">
+               <br>
+               <label>نوع سفارشات:</label>
+               {% for (name, value) in [('بازه زمانی', 'w'), ('سریع', 'i'), ('همراه با دیرآمدگی', 'l'), ('خوشه‌ای', 'c')] %}
+               <div class="field">
+                  <div class="ui radio checkbox">
+                     <input type="radio" name="orderType" {{ 'checked="checked"' if value == (request.args['orderType'][0] if 'orderType' in request.args else 'w') else '' }}
+                     value="{{ value }}">
+                     <label>{{ name }}</label>
+                  </div>
+               </div>
+               {% endfor %}
+            </div>
+         </div>
+         <br>
+         <div id="looper" class="red ui button" onclick="window.looping=true, window.setParam('ordering', 'true'), $('#path-icon').removeClass('none').addClass('block');">اعمال</div>
+         &nbsp;&nbsp;
+         <div class="ui icon button" onclick="window.looping=false, window.setParam('ordering', 'false'), $('#path-icon').removeClass('block').addClass('none');"><i class="ui pause icon"></i></div>
+      </div>
+      <div class="title">
+         <div class="custom tiny icon" style="background-image: url(/static/img/voronoi.jpg)"></div>
+         <span class="hover">مبدا اتوماتیک</span>
+      </div>
+      <div class="content">
+         <p class="transition hidden">Three common ways for a prospective owner to acquire a dog is from pet shops,
+            private owners, or shelters.</p>
+         <p class="transition hidden">A pet shop may be the most convenient way to buy a dog. Buying a dog from a
+            private owner allows you to assess the pedigree and upbringing of your dog before choosing to take it home.
+            Lastly, finding your dog from a shelter, helps give a good home to a dog who may not find one so
+            readily.</p>
+      </div>
+      <div class="title">
+         <div class="custom tiny icon" style="background-image: url(/static/img/spy.png);"></div>
+         <span class="hover">کشف حقه‌بازها</span>
+      </div>
+      <div class="content" style="text-align: center">
+         <p class="transition hidden" style="display: block !important;">
+            امکان دارد بعضی از راننده هایتان از Fake GPS استفاده کنند. به وسیله این امکان آنها را کشف و ضبط کنید.
+         </p>
+         <div id="spy" class="red ui button">شروع کن</div>
+      </div>
+      <div class="title">
+         <div class="custom tiny icon" style="background-image: url(/static/img/lazy.png);"></div>
+         <span class="hover">کشف عوامل کم‌کار, پرکار</span>
+      </div>
+      <div class="content" style="text-align: center">
+         <p class="transition hidden">
+            بعضی از رانندگاه به نسبت دیگر اعضا عملکرد ضعیف‌تر و سرعت‌عمل کمتری دارند به وسیله این افزونه آن‌ها را نمایان
+            کنید.
+         </p>
+         <div id="lazy" class="red ui button">شروع کن</div>
+      </div>
+   </div>
+</div>
+<script>
+     var graph;
+     var xPadding = 30;
+     var yPadding = 30;
+     var maxY = null;
+     var minY = 100;
+     var rates = '{{ request.args['rates'][0] if 'rates' in request.args else '0,0,0,0' }}';
+     rates = rates.split(',').map(function(s) {return parseInt(s);});
+     console.log(rates);
+     var data = { values:[
+             { X: "12:00", Y: rates[0] },
+             { X: "15:00", Y: rates[1] },
+             { X: "18:00", Y: rates[2] },
+             { X: "21:00", Y: rates[3] },
+             { X: "24:00", Y: rates[0] },
+     ]};
+     window.graphData = data.values;
+
+     function getMaxY() {
+         if (maxY) return maxY;
+         var max = minY;
+
+         for(var i = 0; i < data.values.length; i ++) {
+             if(data.values[i].Y > max) {
+                 max = data.values[i].Y;
+             }
+         }
+
+         max += 10 - max % 10;
+         return max;
+     }
+
+     function getXPixel(val) {
+         return ((graph.width() - xPadding) / data.values.length) * val + (xPadding * 1.5);
+     }
+
+     function getYPixel(val) {
+         return graph.height() - (((graph.height() - yPadding) / getMaxY()) * val) - yPadding;
+     }
+
+     $(document).ready(function() {
+         graph = $('#graph');
+         var gap = getXPixel(1) - getXPixel(0);
+         var c = graph[0].getContext('2d');
+         c.lineWidth = 2;
+         c.strokeStyle = '#333';
+         c.font = 'italic 8pt sans-serif';
+         c.textAlign = "center";
+         c.beginPath();
+         c.moveTo(xPadding, 0);
+         c.lineTo(xPadding, graph.height() - yPadding);
+         c.lineTo(graph.width(), graph.height() - yPadding);
+         c.stroke();
+
+         for(var i = 0; i < data.values.length; i ++) {
+             c.fillText(data.values[i].X, getXPixel(i), graph.height() - yPadding + 20);
+         }
+
+         c.textAlign = "right"
+         c.textBaseline = "middle";
+
+         for(var i = 0; i < getMaxY(); i += 10) {
+             c.fillText(i, xPadding - 10, getYPixel(i));
+         }
+         function reDraw() {
+             c.clearRect(xPadding + 1, 0, graph.width(), graph.height() - yPadding - 1);
+             c.clearRect(xPadding + 1, graph.height() - yPadding + 1, graph.width(), 3);
+
+             c.strokeStyle = '#f00';
+             c.beginPath();
+             c.moveTo(getXPixel(0), getYPixel(data.values[0].Y));
+
+             for(var i = 1; i < data.values.length; i ++) {
+                 // c.lineTo(getXPixel(i), getYPixel(data.values[i].Y));
+
+                 c.bezierCurveTo(
+                     getXPixel(i - 1) + gap / 2, getYPixel(data.values[i - 1].Y),
+                     getXPixel(i) - gap / 2, getYPixel(data.values[i].Y),
+                     getXPixel(i), getYPixel(data.values[i].Y)
+                 );
+             }
+             c.stroke();
+
+             c.fillStyle = '#333';
+
+             for(var i = 0; i < data.values.length; i ++) {
+                 c.beginPath();
+                 c.arc(getXPixel(i), getYPixel(data.values[i].Y), 4, 0, Math.PI * 2, true);
+                 c.fill();
+             }
+         }
+         reDraw();
+         maxY = getMaxY();
+
+         // var down = false;
+         var picked = -1;
+         var _y = null;
+         $("#graph").mousedown(function(e) {
+             // down = true;
+             var offset = graph[0].getBoundingClientRect();
+             graph.left = offset.left;
+             graph.top = offset.top;
+
+             x = e.pageX - graph.left;
+             y = e.pageY - graph.top;
+             _y = y;
+             for(var i = 0; i < data.values.length; i ++) {
+                 dx = Math.abs(getXPixel(i) - x);
+                 dy = Math.abs(getYPixel(data.values[i].Y) - y);
+                 if (dx + dy < 6) {
+                     picked = i;
+                     break;
+                 }
+             }
+         });
+         $("#graph").mouseup(function(e) {
+             // down = false;
+             if (picked > -1) {
+                 x = e.pageX - graph.left;
+                 y = e.pageY - graph.top;
+                 var dy = y - _y;
+                 y = getYPixel(data.values[picked].Y) + dy;
+                 val = -y + graph.height() - yPadding;
+                 val /= (graph.height() - yPadding) / getMaxY();
+                 val = Math.round(val);
+                 val = Math.max(0, val);
+                 data.values[picked].Y = val;
+                 if (picked == 0) data.values[data.values.length - 1].Y = val;
+                 if (picked == data.values.length - 1) data.values[0].Y = val;
+                 window.setParam('rates', data.values[0].Y + ',' + data.values[1].Y + ',' + data.values[2].Y + ',' + data.values[3].Y)
+                 reDraw();
+                 picked = -1;
+             }
+         });
+         $("#graph").mouseout(function(e) {
+             // down = false;
+             picked = -1
+         });
+
+         $("#graph").mousemove(function(e) {
+             if (picked > -1) {
+
+             }
+         });
+         $('#setting').css('display', 'none');
+         $('.custom.tiny.icon').first().click();
+     });
+ </script>

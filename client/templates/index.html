@@ -1,0 +1,479 @@
+{% extends "layout.html" %}
+{% block title %}Hooshe{% endblock %}
+{% block main %}
+<style>
+   .ui.fluid.input > input {
+      line-height: 2em !important;
+      text-align: right;
+      direction: rtl;
+   }
+
+   .ui.fluid.button, .ui.fluid.input {
+      line-height: 2em;
+      margin-bottom: 1em;
+   }
+
+   .ui.fluid.button {
+      margin-top: 2.3em !important;
+   }
+
+   .custom.icon {
+      display: inline-block;
+      height: 6em;
+      width: 6em;
+      background-color: #DEF2F1;
+      border-radius: 1em;
+      border: solid 2px #F1F6F7;
+      box-shadow: 0px 4px 15px -5px;
+      background-position: center;
+      background-size: cover;
+   }
+
+   .custom.icon.tiny {
+      width: 3em;
+      height: 3em;
+      margin-left: .5em;
+   }
+
+   .img {
+      background-position: center;
+      background-size: contain;
+      background-repeat: no-repeat;
+   }
+   .background-img {
+      overflow: hidden;
+   }
+
+   .background-img::before {
+      {# background-image: url(/static/img/{{ img }}); background-position: {{ 95 if direction.0 else 5 }}% 50%; background-size: 40%; background-repeat: no-repeat; #}
+      background-image: url(/static/img/flash.jpg);
+      background-size: cover;
+      content: "";
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      opacity: 0.4;
+   }
+
+   .sided {
+      background-repeat: no-repeat;
+      background-size: 90%;
+      width: 50%;
+      display: inline-block;
+      background-color: white;
+      min-height: 16em;
+      opacity: .03;
+   }
+
+   .right.sided {
+      /* float: right; */
+      margin-left: -3px;
+      background-position: 700% 50%;
+   }
+
+   .left.sided {
+      /* float: left; */
+      margin-right: -3px;
+      background-position: -600% 50%;
+   }
+
+
+   @media (max-width:480px)  {
+      /* smartphones, Android phones, landscape iPhone */
+      .ui.red.message {
+         display: none;
+      }
+
+      #flash-icon {
+         margin-top: -1.5em !important;
+         margin-left: -2em !important;
+      }
+
+      #map-icon {
+         margin-top: 3em !important;
+         max-width: 100%;
+         height: auto;
+         width: auto;
+         margin:auto;
+         display:block
+      }
+
+      #play-form {
+         width: 100% !important;
+      }
+   }
+
+   .inline.grid > div {
+      text-align: center;
+      align-items: center;
+   }
+
+   .inline.grid h1 {
+      font-size: 3.5em;
+   }
+
+   .inline.grid h2, .inline.grid i {
+      color: #E05959;
+   }
+
+   #nine .column p {
+      margin-bottom: 0;
+      direction: rtl;
+   }
+
+   #nine .column h3 {
+      margin: 0;
+      font-weight: bold;
+      font-size: 1.3em;
+      margin-bottom: 2em;
+   }
+
+   .message .header:hover, .message .img:hover {
+      cursor: pointer;
+   }
+</style>
+<div class="ui red message"
+     style="direction: rtl; margin: 0; border-radius: 0; vertical-align: center; background-color: #B40621; text-align: center">
+   <i class="close icon" style="top: auto; color: white; padding-top: .4em;"></i>
+   <div class="img"
+        style="background-image: url(/static/img/flash_gordon.jpg); display: inline-block; height: 4em; margin-top: -1em; margin-bottom: -1.3em; position: relative; top: 0; width: 5.6em;"></div>
+   <div class="header" style="display: inline-block; position: relative; top: -5px; color: white">نیاز به افراد توانمند
+      برای توسعه داریم
+   </div>
+</div>
+<script>
+   $('.message .close').on('click', function() {
+      $(this).closest('.message').transition('fade');
+   });
+   $('.message .header, .message .img').click(function() {
+      $(this).closest('.message').transition('fade');
+      $('html, body').animate({
+        scrollTop: $("#telephone").offset().top
+      }, 1000);
+      window.user_type = 'd';
+   });
+</script>
+<div style="width: 100%; padding: 9%; vertical-align: top;">
+   <div class="menu" style="float: left; margin-top: -3.5em; margin-left: -3.5em; display: inline-block">
+      <div id="flash-icon" onclick="window.location.href='/'"
+           style="cursor: pointer; width: 7em; height: 7em; display: inline-block;
+           background-image: url(/static/img/flash.jpg);
+           background-position: center; background-size: contain; background-repeat: no-repeat;">
+      </div>
+      <span id="request-demo" style="cursor: pointer; color: #CB242B; vertical-align: top; display: inline-block; margin-top: 2em; margin-left: 1em; font-size: 1.5em;">درخواست دمو</span>
+   </div>
+   <img id="map-icon" src="/static/img/routific.png" style="float: left; margin-top: 15em; margin-left: -11.5em;"/>
+   <div id="play-form" style="width: 45%; margin-left: auto; margin-right: 0; align-items: center; text-align: center;">
+      <h1 class="ui header" style="display: none">احساس مطبوع را به مشتریانتان هدیه دهید</h1>
+      <h1 class="ui header" style="direction: rtl">
+         این‌بار هوش‌مصنوعی به‌کمک سیستم حمل‌بارتان می‌آید
+      </h1>
+      <h3 class="ui header" style="margin-bottom: 1.8em;">سامانه مدیریت جابه جایی های برخط</h3>
+      <form id="play" method="post" action="/ajaq">
+         <div class="ui fluid input">
+            <input name="username" id="username" type="text" placeholder="اسمتان ..">
+         </div>
+         <div class="ui fluid input">
+            <input name="email" id="email" type="text" placeholder="پست الکترونیکیتان ..">
+         </div>
+         <div class="ui fluid input">
+            <input name="password" id="password" type="text" placeholder="رمز عبور (حداقل ۶ کاراکتر )">
+         </div>
+         <button class="fluid red ui button">به ما بپیوندید</button>
+      </form>
+      <script>
+         $(function() {
+            $('#username, #email, #password').focus(function() {
+               if ($(this).val() == 'اسم یکتا وارد نمایید' || $(this).val() == 'رمز عبور الزامیست' || $(this).val() == 'پست الکترنیکیتان را وارد کنید')
+                  $(this).val('');
+
+               $(this).css({'border-color': 'rgba(34,36,38,.15)', 'color': 'rgba(0, 0, 0, .87)'});
+            });
+
+            $('#play').submit(function() {
+               var username = $('#username').val();
+               var email = $('#email').val();
+               var password = $('#password').val();
+               if (!username) {
+                  $('#username').css({'border-color': '#D01919', 'color': '#D01919'});
+                  $('#username').val('اسم یکتا وارد نمایید');
+                  return false;
+               }
+
+               if (!password || password.length < 6) {
+                  $('#password').css({'border-color': '#D01919', 'color': '#D01919'});
+                  $('#password').val('رمز عبور الزامیست');
+                  return false;
+               }
+
+               var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+               if (!email || !re.test(String(email).toLowerCase())) {
+                  $('#email').css({'border-color': '#D01919', 'color': '#D01919'});
+                  $('#email').val('پست الکترنیکیتان را وارد کنید');
+                  return false;
+               }
+               $(this).attr('action', './client/@' + username);
+               return true;
+               window.location.href = "./client/@" + username + "?password=" + password + "&email=" + email + "&play=true&status=true&auto=true&vehicles=10&algorithm=" + window.algorithm + "&fastness=17&patching=true&ordering=true&rate=.8" + (window.protocols.length > 0 ? '&protocols=-' + window.protocols.join('-') : '');
+            });
+
+            $('#request-demo').click(function() {
+               $('html, body').animate({
+                 scrollTop: $("#play").offset().top - 10
+               }, 500, function() {
+                  $('#play').submit();
+               });
+            });
+         });
+
+      </script>
+      <div style="align-items: right; text-align: right; margin-top: 3.4em;">
+         <div style="margin-top: 1em; direction: rtl; line-height: 2.1em;">
+            <i class="circular inverted teal check icon"
+               style="margin-left: .5em; margin-right: .7em; background-color: #FC767C !important;"></i>
+            <span>رسیدن به موقع مرسولات, بیشترین رضایت مندی مشتریان شما به وسیله الگوریتم های تخصصی شده برای کسب و کار شما</span>
+         </div>
+         <div style="margin-top: 1em; direction: rtl; line-height: 2.1em;">
+            <i class="circular inverted teal check icon"
+               style="margin-left: .5em; margin-right: .7em; background-color: #FC767C !important;"></i>
+            <span>شفافیت روند انتقال مرسولات</span>
+         </div>
+         <div style="margin-top: 1em; direction: rtl; line-height: 2.1em;">
+            <i class="circular inverted teal check icon"
+               style="margin-left: .5em; margin-right: .7em; background-color: #FC767C !important;"></i>
+            <span>بهبود مداوم بازدهی باروش‌های هوش‌مصنوعی</span>
+         </div>
+      </div>
+   </div>
+</div>
+<div style="background-color: #F8F6F2; align-items: right; text-align: right;">
+   <div class="inline ui grid" style="margin-left: 2em; margin-right: 2em;">
+      <div class="four wide column">
+         <i class="ui huge hourglass outline icon"></i>
+         <h1>70 %</h1>
+         <h2>کاهش دیرآمدگی‌ها</h2>
+      </div>
+      <div class="two wide column"></div>
+      <div class="four wide column">
+         <i class="ui huge chart line icon"></i>
+         <h1>25 %</h1>
+         <h2>بهبود عملکرد رانندگان</h2>
+      </div>
+      <div class="two wide column"></div>
+      <div class="four wide column">
+         <i class="ui huge stopwatch icon"></i>
+         <h1>15 %</h1>
+         <h2>کاهش در مسافت‌ها</h2>
+      </div>
+   </div>
+</div>
+<div>
+   <div style="direction: rtl; width: 50%; margin: 0 auto; align-items: center; text-align: center; margin-top: 6em; margin-bottom: 3em;">
+      <h1 class="ui header">با کمک شما کسب وکارتان را سودآورتر می‌کنیم.</h1>
+      <p style="font-style: italic; font-size: 1.2em; margin-top: 1.7em;">
+         برای هر نوع سیستم تحویل با هر پیچیدگی.
+      </p>
+      <p style="font-size: 1.2em; margin-top: 1.7em;">
+         مسیریابی بدون گوگل‌مپ یا Waze واقعا مشکل است. بخصوص اگر مقصد ناآشنا باشد. یا برای‌اولین بار قرار باشد که‌به آن محله سر بزنیم. شرایط سخت‌تری هم هست. فرض کنید سرزدن به چندین مقصد و رساندن کالا به آنجا در برنامه کاری امروزتان باشد. ابتدا کدام نقطه را انتخاب میکنید. تا در تمام طول مسیر به‌دام ترافیک های سنگین شهر نیوفتید‌‌‌, یا مسیر کمتر و سهل الوصول تری را پیمایش کنید.
+         <a href="/">هوشه</a>
+         اینجاست تا با آن نه تنها یک مسیر و چند مقصد را برنامه ریزی کنید. بلکه مدیریت و مسیریابی تمام ناوگان راننده‌هایتان اعم‌از موتورسیکلت و سواری و کامیون را به بهترین‌نحو و کاملا هوشمند و کارا دردست بگیرید و برروی آن‌ها کنترل و نظارت کامل داشته‌باشید.
+      </p>
+      <p style="font-style: italic; font-size: 1.2em; margin-top: 1.7em;">
+         روش کار بسیارساده است. فقط نشانی گیرنده‌های مرسولاتتان را درسامانه ثبت ‌کنید. باروش‌های هوش‌مصنوعی و کاملا خودکار رانندگانتان را مدیریت می‌کنیم. ومرسولات رابه دست مشتریانتان می‌رسانیم.
+      </p>
+   </div>
+   {% set direction = [False] %}
+   {% macro feature(title, description, img, motivation) -%}
+   <div style="width: 100%; position: relative;">
+      {% if not direction.0 %}
+      <div class="left sided" style="background-image: url(/static/img/{{ img }})"></div>
+      {% endif %}
+      <div style="width: calc(50% - 3px); display: inline-block; align-items: center; text-align: center">
+         <div class="custom icon" style="background-image: url(/static/img/{{ img }}); margin-top: 1.5em;"></div>
+         <h2 class="ui header">{{ title }}</h2>
+         <p style="direction: rtl">{{ description }}</p>
+         <button class="circular ui button" style="background-color: #FC767C; color: white">{{ motivation }}</button>
+      </div>
+      {% if direction.0 %}
+      <div class="right sided" style="background-image: url(/static/img/{{ img }})"></div>
+      {% endif %}
+      {% if direction.append(not direction.pop()) %}{% endif %} {# increment count by 1 #}
+   </div>
+   {%- endmacro %}
+   {{ feature("""بهره‌گیری از الگوریتم‌های هندسی""", """ناحیه بندی شهر تخصیص هرناحیه به یک شعبه""", 'voronoi.jpg', """دراین‌باره بیشتر بدانید""") }}
+   {{ feature("""""", """این که چه کسی چه کند مهم است""", 'routing.jpg', """به دنبال بهترین مسیریابی برای شما""") }}
+   {{ feature("""محیط شبیه سازی برای به حداقل رساندن ریسک""", """ربات به‌جای راننده واقعی""", 'simulation.png', 'این‌جا') }}
+   {{ feature("""مسیر‌های چند مقصده""", """استفاده حداکثری از ظرفیت باری رانندگانتان (ride sharing)""", 'mdst.png', 'مسیریابی') }}
+   {{ feature('', 'مسیریابی دستی با اپراتور', 'manual_routing.jpg', 'بیشتر') }}
+   {{ feature('', 'با قابلیت های هوشه راننده خطاکار و تنبل را شناسایی کنید', 'spy.png', 'بیشتر') }}
+</div>
+<i class="ui big link chevron left icon" style="margin-left: .5em; margin-top: 4.75em; position: relative; z-index: 2"></i>
+<i class="ui big link chevron right icon" style="margin-left: calc(100% - 3.6em); margin-top: 4.75em; position: relative; z-index: 2"></i>
+<script>
+   var position = 0;
+   $(function() {
+      $('.left.chevron').click(function() {
+         if (position == 0) {
+            $(this).css('color', 'grey');
+            return;
+         }
+         $('.right.chevron').css('color', 'black');
+         position --;
+         $('#nine').animate({left: '+=100%'});
+      });
+
+      $('.right.chevron').click(function() {
+         if (position == 2) {
+            $(this).css('color', 'grey');
+            return;
+         }
+         $('.left.chevron').css('color', 'black');
+         position ++;
+         console.log(position);
+         $('#nine').animate({left: '-=100%'});
+      });
+   });
+</script>
+<div id="nine" style="width: 300%; position: relative; left: 0px; top: -7.3em;">
+   <div style="display: inline-block; width: 33%;">
+      <div class="inline ui grid" style="margin-left: 3em; margin-right: 3em;">
+         <div class="four wide column">
+            <p><img src="/static/img/nine/parcel_courier.png"></p>
+            <h3>جابه‌جایی کالا</h3>
+            <p>کسب‌وکارهای از جنس جابه‌جایی که دراین سال‌ها پیشرفت بالایی داشته‌اند هوشمندتر می‌شوند.</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/retail.png"></p>
+            <h3>خورده‌فروشی</h3>
+            <p>بازار خورده‌فروشی‌ها رقابتی‌تر شده. نیاز به رساندن هرچه سریع‌تر بسته‌ها به‌دست مشتریان پررنگ‌تر شده</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/auto_parts.png"></p>
+            <h3>چرخ اقتصاد</h3>
+            <p>اتصال کسب‌وکارها به‌هم, ایجاد زنجیره تامین, رونق اقتصاد</p>
+         </div>
+      </div>
+   </div>
+   <div style="display: inline-block; width: 33%; margin-left: -3px;">
+      <div class="inline ui grid" style="margin-left: 3em; margin-right: 3em;">
+         <div class="four wide column">
+            <p><img src="/static/img/nine/LTL.png"></p>
+            <h3>باربری</h3>
+            <p>مشاهده عملکرد باربرها ازبالا و کنترل کامل آنها و بالابردن عملکردشان سبب بهره‌وری بیشتر خواهد شد</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/food_beverage.png"></p>
+            <h3>غذا و رستوران</h3>
+            <p>اگر راننده مقصدرا نشناسد و یابه هردلیلی دیرکند. غذا سرد و موجب نارضایتی خواهد شد</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/3PL.png"></p>
+            <h3>خدمات</h3>
+            <p>ساده سازی تصمیم‌گیری رانندگاه ,ارمغان شفافیت برای مشتریان شما</p>
+         </div>
+      </div>
+   </div>
+   <div style="display: inline-block; width: 33%; margin-left: -3px;">
+      <div class="inline ui grid" style="margin-left: 3em; margin-right: 3em;">
+         <div class="four wide column">
+            <p><img src="/static/img/nine/field_service_technicians.png"></p>
+            <h3>لجستیک و خدمات درمحل</h3>
+            <p>تخصیص افراد خبره به محل درخواست</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/business_products_services.png"></p>
+            <h3>محصولات و خدمات کسب و کار</h3>
+            <p>ازدید مشتریان، رانندگان تحویل شما چهره شرکت شما هستند</p>
+         </div>
+         <div class="two wide column"></div>
+         <div class="four wide column">
+            <p><img src="/static/img/nine/other_industries.png"></p>
+            <h3>سایر صنایع</h3>
+            <p>کسب‌وکار شما‌, فرایند‌های جابه‌جایی و تدارکات درکسب شما‌, راه‌حل هوشمند ازما</p>
+         </div>
+      </div>
+   </div>
+</div>
+<div style="width: 50%; margin: 0 auto; align-items: center; text-align: center; margin-top: 6em; margin-bottom: 3em;">
+   <h1 class="ui header" style="direction: rtl">اجازه دهید کارمان‌را برایتان شرح دهیم.</h1>
+   <p style="font-style: italic; font-size: 1.2em; margin-top: 1.7em; direction: rtl">
+      شماره تماس خودرا بگذارید:
+   </p>
+   <p id="telephone" style="font-style: italic; font-size: 1.2em; margin-top: 1.7em;">
+      <div class="ui left action input">
+        <button id="call-me" class="ui red labeled icon button">
+          <i class="phone icon"></i>
+          بامن تماس بگیر
+        </button>
+        <input id="call-value" type="text" value="" placeholder="091...">
+      </div>
+   </p>
+</div>
+<script>
+   $(function() {
+      window.user_type = 'c';
+      $('#call-me').click(function() {
+         $.post('client/contact', {'number': $('#call-value').val(), 'type': window.user_type}, function(succeded) {
+            if(succeded) {
+               $('#call-me').parent().html('<span style="font-size: 1.5em; font-weight: 700; color: #B40621;">باتشکر‌, منتظر تماس‌ما باشید</span>');
+            }
+         });
+      });
+   });
+</script>
+<div style="background-color: #F8F6F2; align-items: right; text-align: right; margin-top: 2em; margin-bottom: 2em;">
+   <div style="display: inline-block">
+      <div style="display: inline-block"></div> <!-- icons -->
+   </div>
+</div>
+<div style="align-item: center; text-align: center">
+   <h2 class="ui header"> داستان تیم </h2>
+   <div class="ui card" style="display: inline-block; margin: 2em;">
+      <div class="image">
+         <img src="/static/img/avatar/elliot.png">
+      </div>
+      <div class="content">
+         <a class="header">مصطفی اجاقی</a>
+         <div class="meta">
+            <span class="date">Joined in 2018</span>
+         </div>
+         <div class="description">
+            مصطفی درحال تحصیل کامپیوتر صنعتی شریف
+         </div>
+      </div>
+      <div class="extra content">
+         <a>
+            <i class="user icon"></i>
+            geek, kind
+         </a>
+      </div>
+   </div>
+   <div class="ui card" style="display: inline-block; margin: 2em;">
+      <div class="image">
+         <img src="/static/img/avatar/matthew.png">
+      </div>
+      <div class="content">
+         <a class="header">پوریا شریفی‌نژاد</a>
+         <div class="meta">
+            <span class="date">founded in 2016</span>
+         </div>
+         <div class="description">
+            پوریا درحال تحصیل مدیریت صنعتی شریف
+         </div>
+      </div>
+      <div class="extra content">
+         <a>
+            <i class="user icon"></i>
+            friendly
+         </a>
+      </div>
+   </div>
+</div>
+{% endblock %}

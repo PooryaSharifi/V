@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>Chart</title>
+   <script src="/static/chart/2.8.0/chart.min.js"></script>
+   <link rel="stylesheet" href="/static/chart/2.8.0/chart.min.css">
+</head>
+<body>
+<canvas id="myChart" width="400" height="400"></canvas>
+<script>
+
+Chart.pluginService.register({
+            beforeDraw: function (chart, easing) {
+                if (chart.config.options.chartArea && chart.config.options.chartArea.backgroundColor) {
+                    var ctx = chart.chart.ctx;
+                    var chartArea = chart.chartArea;
+
+                    ctx.save();
+                    ctx.fillStyle = chart.config.options.chartArea.backgroundColor;
+                    ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+                    ctx.restore();
+                }
+            }
+        });
+
+var config = {
+  type: 'line',
+  data: {
+    labels:["Label1","Label2","Label3","Label4"],
+    borderColor : "#fffff",
+    datasets: [
+      {
+        data: ["2","3","1","4"],
+        borderColor : "#fff",
+        borderWidth : "1",
+        hoverBorderColor : "#000",
+        backgroundColor: ["rgba(1, 97, 156, .1)"],
+        hoverBackgroundColor: ["#f38b4a"]
+      }]
+  },
+  options: {
+    scales: {
+      yAxes: [{
+        ticks: {
+          beginAtZero: true
+        }
+      }],
+      /* yAxes: [{
+        ticks: {
+          min : 0,
+          stepSize : 1,
+          fontColor : "#000",
+          fontSize : 14
+        },
+        gridLines:{
+          color: "#000",
+          lineWidth:2,
+          zeroLineColor :"#000",
+          zeroLineWidth : 2
+        },
+        stacked: true
+      }],
+      xAxes: [{
+        ticks:{
+          fontColor : "#000",
+          fontSize : 14
+        },
+        gridLines:{
+          color: "#fff",
+          lineWidth:2
+        }
+      }] */
+    },
+    responsive: false,
+    chartArea: {
+        backgroundColor: 'rgba(1, 97, 156, 1)'
+    }
+  }
+};
+
+var ctx = document.getElementById('myChart').getContext('2d');
+new Chart(ctx, config);
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{#
+<script>
+   Chart.pluginService.register({
+            beforeDraw: function (chart, easing) {
+                if (chart.config.options.chartArea && chart.config.options.chartArea.backgroundColor) {
+                    var ctx = chart.chart.ctx;
+                    var chartArea = chart.chartArea;
+
+                    ctx.save();
+                    ctx.fillStyle = chart.config.options.chartArea.backgroundColor;
+                    ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+                    ctx.restore();
+                }
+            }
+        });
+
+        var config = {
+  type: 'bar',
+  data: {
+    labels:["Label1","Label2","Label3","Label4"],
+    borderColor : "#fffff",
+    datasets: [
+      {
+        data: ["2","3","1","4"],
+        borderColor : "#fff",
+        borderWidth : "3",
+        hoverBorderColor : "#000",
+        backgroundColor: [
+          "#f38b4a",
+          "#56d798",
+          "#ff8397",
+          "#6970d5"
+        ],
+        hoverBackgroundColor: [
+          "#f38b4a",
+          "#56d798",
+          "#ff8397",
+          "#6970d5"
+        ]
+      }]
+  },
+  options: {
+    scales: {
+      yAxes: [{
+        ticks:{
+          min : 0,
+          stepSize : 1,
+          fontColor : "#000",
+          fontSize : 14
+        },
+        gridLines:{
+          color: "#000",
+          lineWidth:2,
+          zeroLineColor :"#000",
+          zeroLineWidth : 2
+        },
+        stacked: true
+      }],
+      xAxes: [{
+        ticks:{
+          fontColor : "#000",
+          fontSize : 14
+        },
+        gridLines:{
+          color: "#fff",
+          lineWidth:2
+        }
+      }]
+    },
+    responsive:false,
+    chartArea: {
+        backgroundColor: 'rgba(251, 85, 85, 0.4)'
+    }
+  }
+};
+
+        var ctx = document.getElementById("barChart").getContext("2d");
+        new Chart(ctx, config);
+</script>#}
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>Title</title>
+</head>
+<body>
+<div id="bigOne">kh</div>
+<!-- The core Firebase JS SDK is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-messaging.js"></script>
+
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#config-web-app -->
+
+<script>
+  // Your web app's Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyBYZWVJBC033SPzHhyyJmVkQfo1U-okYOE",
+    authDomain: "express-1516177074533.firebaseapp.com",
+    databaseURL: "https://express-1516177074533.firebaseio.com",
+    projectId: "express-1516177074533",
+    storageBucket: "express-1516177074533.appspot.com",
+    messagingSenderId: "197435492753",
+    appId: "1:197435492753:web:6c0dcbb5a87b9f7b"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  var messaging = firebase.messaging();
+  messaging.usePublicVapidKey("BLfKOKE-XahtbbEDFTiF4MJAvQHCKCfYvukiS5Nf8k2hnF5l_6U5ytCUhomzzChjLrzykeWxfF3lLEXZLrSmRD8");
+
+  messaging.requestPermission().then(function() {
+    console.log('Notification permission granted.');
+    messaging.getToken().then(function(token) {
+      console.log(token);
+    });
+  }).catch(function(err) {
+    console.log('Unable to get permission to notify.', err);
+  });
+
+  messaging.onMessage(function(payload) {
+    console.log('Message received. he he', payload);
+  });
+</script>
+<script>
+function myMap(google) {
+var mapProp= {
+  center:new google.maps.LatLng(51.508742,-0.120850),
+  zoom:5,
+};
+var iframe = document.getElementById('iframeId');
+var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+var map = new google.maps.Map(innerDoc.getElementById("googleMap"), mapProp);
+}
+</script>
+<iframe id="iframeId" src="https://0.0.0.0/v0.2/client/.map" width="800" height="600" frameborder="0" style="border:0" allowfullscreen=""></iframe>
+</body>
+</html>

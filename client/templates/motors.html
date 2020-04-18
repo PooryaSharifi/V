@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <style>
+      html, body {
+         height: 100%;
+         padding: 0;
+         margin: 0;
+      }
+      #map {
+        height: 100%;  /* The height is 400 pixels */
+        width: 100%;  /* The width is the width of the web page */
+      }
+   </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+   function initMap() {
+      var uluru = {lat: 35.7122167,lng: 51.3645588};
+      var map = new google.maps.Map(
+         document.getElementById('map'), {zoom: 12, center: uluru});
+      var triangle = function(lat, lng) {
+         var triangleCoords = [
+            {lat: lat + .0026, lng: lng},
+            {lat: lat - .0024, lng: lng + .0035},
+            {lat: lat - .0024, lng: lng - .0035},
+            {lat: lat + .0026, lng: lng},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: '#0000FF',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#0000FF',
+            fillOpacity: 0.35
+         });
+         
+         return t;
+      };
+      
+      var square = function(lat, lng) {
+         var triangleCoords = [
+            {lat: lat + .0029, lng: lng + .0035},
+            {lat: lat - .0029, lng: lng + .0035},
+            {lat: lat - .0029, lng: lng - .0035},
+            {lat: lat + .0029, lng: lng - .0035},
+            {lat: lat + .0029, lng: lng + .0035},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: '#00FF00',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#00FF00',
+            fillOpacity: 0.35
+         });
+         
+         return t;
+      };
+      
+      var line = function(s, t) {
+         var flightPlanCoordinates = [
+            {lat: s[0], lng: s[1]},
+            {lat: t[0], lng: t[1]},
+         ];
+         var flightPath = new google.maps.Polyline({
+            path: flightPlanCoordinates,
+            geodesic: true,
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.2,
+            strokeWeight: 1
+         });
+         return flightPath;
+      }
+      
+      var path = function(s, t) {
+         sq = square(s[0], s[1]);
+         tr = triangle(t[0], t[1]);
+         l = line(s, t);
+         return [sq, tr, l];
+      }
+      
+      markers = {};
+      setInterval(function() {
+         var xmlhttp = new XMLHttpRequest();
+         xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == XMLHttpRequest.DONE && xmlhttp.status == 200) {
+               // [{"key":"shahin","_date":1535384241.9018619061,"lat":35.7358818054,"lng":51.3949966431,"value":20,"flag":1}]
+               // console.log(xmlhttp.responseText);
+               porters = JSON.parse(xmlhttp.responseText);
+               for(i = 0; i < porters.length; i++) {
+                  var porter = porters[i];
+                  var key = porter['key'];
+                  var flag = porter['flag'];
+                  if (markers[key] === undefined) {
+                     markers[key] = [new google.maps.Marker({position: {lat: porter['lat'], lng: porter['lng']}, map: map}), null];
+                  } else {
+                     markers[key][0].setPosition({lat: porter['lat'], lng: porter['lng']});
+                  }
+                  if (flag == 1 && !markers[key][1]) {
+                     var pathhttp = new XMLHttpRequest();
+                     pathhttp.onreadystatechange = function() {
+                        if(pathhttp.readyState == XMLHttpRequest.DONE && pathhttp.status == 200) {
+                           _porter = JSON.parse(pathhttp.responseText);
+                           markers[key][1] = path([_porter['s_lat'], _porter['s_lng']], [_porter['t_lat'], _porter['t_lng']]);
+                           markers[key][1][0].setMap(map);
+                           markers[key][1][1].setMap(map);
+                           markers[key][1][2].setMap(map);
+                        }
+                     }
+                     pathhttp.open("GET", "{{ host }}/{{ hang }}/" + key + "@?key={{ key }}", true);
+                     pathhttp.send();
+                  }
+                  if (flag == 0 && markers[key][1]) {
+                     markers[key][1][0].setMap(null);
+                     markers[key][1][1].setMap(null);
+                     markers[key][1][2].setMap(null);
+                     markers[key][1] = null;
+                  }
+               }
+            }
+         };
+         xmlhttp.open("POST", "{{ host }}/{{ hang }}/@all?key={{ key }}", true);
+         xmlhttp.send();
+      }, 100);
+   }
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDvQr0q3jxqbAv4ju68H9H8YEMJBmXZGl0&callback=initMap">
+</script>
+</body>
+</html>

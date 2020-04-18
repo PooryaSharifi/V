@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>{{ meta.title }}</title>
+   <script src="/static/jquery.min.js"></script>
+
+   <link rel="stylesheet" href="/static/leaflet/1.5.1/leaflet.css">
+   <script src="/static/leaflet/1.5.1/leaflet.js"></script>
+
+   <script src="/static/ractive.js"></script>
+
+   <link rel="stylesheet" href="/static/semantic/dist/semantic.min.css">
+   <script src="/static/semantic/dist/semantic.min.js"></script>
+
+   <script src="/static/chart/2.8.0/chart.min.js"></script>
+   <link rel="stylesheet" href="/static/chart/2.8.0/chart.min.css">
+   <style>
+      #map {
+         height: 100%;
+      }
+      .vasquette-margin-enabled#omni-box {
+         margin: 8px 8px 8px 0px;
+      }
+      .omni-bar.form {
+         background-color: white;
+         border-radius: 10px;
+         border: 1px #E5E5E5 solid;
+         box-shadow:0 1px 4px -1px rgba(0,0,0,0.14);
+         direction: rtl;
+         margin-bottom: 8px;
+      }
+      .omni-bar.form.err {
+         color: #912D2B;
+         background-color: #FFF6F6;
+         padding: 9px 6px 8px 6px;
+      }
+      #omni-bar input:focus{
+         outline: none;
+      }
+      .leaflet-container {
+         font: inherit !important;
+      }
+   </style>
+</head>
+<body>
+<div id="map">
+   <div id="omni-box" class="vasquette-margin-enabled">
+      <div id="omni-bar" class="omni-bar form" style="padding: 10px;">
+         <i class="bars icon" style=""></i>
+         <input type="text" style="border: none; box-shadow: none; width: 220px" value="{{ meta.input }}">
+         <i id="submit" class="search icon" style="color: #DDDDDD;"></i>
+         <i style="border-left: 1px #DDDDDD solid; margin: 0px 1px 0px 1px"></i>
+         <i class="chart line icon" style=""></i>
+      </div>
+      <div id="err" class="omni-bar err form" style="display: none; margin-top: -45px; position: relative; z-index: -1">
+         <i class="attention icon"></i>
+         <span>foewij</span>
+         <i class="times icon" style="float: left; margin-bottom: -2px; cursor: pointer;"></i>
+      </div>
+      <div class="omni-bar form">
+         <canvas id="chart" height="400"></canvas>
+      </div>
+   </div>
+</div>
+<svg style="display: none;">
+   <defs>
+      <filter id="filter">
+         <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"
+                         color-interpolation-filters="sRGB"></feGaussianBlur>
+         <feColorMatrix class="blurValues" in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9"
+                        result="filter"></feColorMatrix>
+         <feBlend in="SourceGraphic" in2="filter"></feBlend>
+         <feComposite in="SourceGraphic" in2="filter" operator="atop"></feComposite>
+      </filter>
+   </defs>
+</svg>
+<script>
+   var init = (porter) => {
+      window.porters[porter] = {};
+      window.porters[porter]._c = 'rgba(255, 0, 32, 1)';
+   }
+   var submit = (phrase) => {
+      if (phrase.length == 0) return;
+      if (phrase[0] == '@') return poi(phrase.substr(1));
+   };
+   var err = (msg) => {
+      var err = $('#err');
+      err.find('span').html(msg);
+      if(err.css('display') == 'none') {
+         err.css('display', 'block').animate({
+            paddingTop: '+=33px'
+         });
+      }
+   };
+   var unErr = () => {
+      var err = $('#err');
+      if(err.css('display') != 'none') {
+         $('#err span').html('');
+         err.animate({
+            paddingTop: '-=33px'
+         }, () => {
+            err.css('display', 'none')
+         });
+      }
+   };
+   $(document).mousedown(function(e) {
+       var container = $("#err");
+       if (!container.is(e.target) && container.has(e.target).length === 0) unErr();
+   });
+
+</script>
+<script class="map">
+   var erase = (shape) => {
+      if (!(shape in window.map)) return;
+      for (var i = 0; i < window.map[shape].length; i++) window.map[shape][i].remove();
+   };
+   var spheralify = (spherals) => {
+      window.map.spherals = [];
+      for (var i = 0; i < spherals.length; i++) {
+         var spheral = spherals[i];
+         window.map.spherals.push(L.circle(spheral.mean, {
+             color: 'rgba(255, 120, 147, 1)',
+             fillColor: 'rgba(255, 120, 147, 1)',
+             fillOpacity: 1,
+             radius: Math.sqrt(spheral.covariance) * 1000000 * spheral.weight
+         }).addTo(map));
+      }
+   };
+</script>
+<script>
+   $(() => {
+      realign = () => {
+         var input = $('#omni-bar input');
+         var phrase = input.val();
+         if (phrase.length == 0 || /[آ-ی]/.test(phrase[0]))
+            input.css('text-align', 'inherit').css('direction', 'rtl');
+         else
+            input.css('text-align', 'left').css('direction', 'ltr');
+      };
+      poi = (porter) => {
+         var bounds = map.getBounds();
+         if(!(porter in window.porters)) init(porter);
+
+         $.post('/v0.2/client/bi/q7/' + porter + '/' + bounds._northEast.lat + ',' + bounds._northEast.lng + ';' + bounds._southWest.lat + ',' + bounds._southWest.lng, (spherals) => {
+            if (spherals.length == 0) return err('یافت نشد');
+            unErr();
+            window.porters[porter].spherals = spherals;
+            erase('spherals');
+            spheralify(spherals);
+         })
+      };
+      $('#omni-box').on('input', 'input', () => {
+         realign();
+      }); realign();
+      $('#omni-box').on('keydown', 'input', (e) => {
+         if(e.key == 'Enter' || e.keyCode == 13) submit($('#omni-bar input').val());
+      });
+      $('#submit').click(() => {submit($('#omni-bar input').val())});
+   });
+</script>
+<script>
+   window.porters = {};
+   Chart.pluginService.register({
+      beforeDraw: function (chart, easing) {
+         if (chart.config.options.chartArea && chart.config.options.chartArea.backgroundColor) {
+            var ctx = chart.chart.ctx;
+            var chartArea = chart.chartArea;
+
+            ctx.save();
+            ctx.fillStyle = chart.config.options.chartArea.backgroundColor;
+            ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+            ctx.restore();
+         }
+      }
+   });
+
+var config = {
+  type: 'line',
+  data: {
+    labels:["Label1","Label2","Label3","Label4"],
+    borderColor : "#fffff",
+    datasets: [
+      {
+        data: ["2","3","1","4"],
+        borderColor : "#fff",
+        borderWidth : "1",
+        hoverBorderColor : "#000",
+        backgroundColor: ["rgba(1, 97, 156, .1)"],
+        hoverBackgroundColor: ["#f38b4a"]
+      }]
+  },
+  options: {
+    scales: {
+      yAxes: [{
+        ticks: {
+          beginAtZero: true
+        }
+      }],
+    },
+    responsive: false,
+    chartArea: {
+        backgroundColor: 'rgba(1, 97, 156, 1)'
+    }
+  }
+};
+
+</script>
+<script>
+var center = [35.709444, 51.375942];
+var map = L.map('map', {
+   attributionControl: false,
+   zoomControl: false,
+}).setView(center, 12);
+window.map = map;
+
+L.control.zoom({
+    position: 'bottomleft'
+}).addTo(map);
+
+L.tileLayer('http://localhost:8080/hot/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  // attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+}).addTo(map);
+
+
+var omni_container =  L.Control.extend({
+   options: {
+      position: 'topright'
+   },
+
+   onAdd: function (map) {
+      var container = L.DomUtil.create('div');
+      container.style.marginRight = 0;
+      container.style.marginTop = 0;
+      container.appendChild($('#omni-box')[0]);
+      return container;
+   },
+});
+
+map.addControl(new omni_container());
+
+$('div.leaflet-pane.leaflet-overlay-pane').css('filter', 'url(#filter)').css('opacity', '.75');
+var ctx = document.getElementById('chart').getContext('2d');
+new Chart(ctx, config);
+</script>
+</body>
+</html>

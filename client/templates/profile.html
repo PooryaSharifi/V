@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block title %}Profile{% endblock %}
+{% block main %}
+<style>
+   .ui.fluid.input > input {
+      line-height: 2em !important;
+      text-align: right;
+      direction: rtl;
+   }
+
+   .ui.fluid.button, .ui.fluid.input {
+      line-height: 2em;
+      margin-bottom: 1em;
+   }
+
+   .ui.fluid.button {
+      margin-top: 2.3em !important;
+   }
+
+   .custom.icon {
+      display: inline-block;
+      height: 6em;
+      width: 6em;
+      background-color: #DEF2F1;
+      border-radius: 1em;
+      border: solid 2px #F1F6F7;
+      box-shadow: 0px 4px 15px -5px;
+      background-position: center;
+      background-size: cover;
+   }
+
+   .custom.icon.tiny {
+      width: 3em;
+      height: 3em;
+      margin-left: .5em;
+   }
+</style>
+<div style="width: 100%; padding: 9%; vertical-align: top;">
+   <div id="flash-icon" onclick="window.location.href='/'" style="cursor: pointer; width: 7em; height: 7em; float: left; margin-top: -3.5em; margin-left: -3.5em; background-image: url(/static/img/flash.jpg);
+      background-position: center;
+      background-size: contain;background-repeat: no-repeat;"></div>
+   <form id="form" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="key" value="{{ key }}">
+      <input name="logo" type="file" id="logo-upload" style="display:none"/>
+      <img id="logo-icon" src="/static/img/logo/{{ hang }}.png" onerror="this.src='/static/img/upload.png'" style="float: left; margin-top: 13em; margin-left: -6.5em; cursor: pointer" width="200"/>
+
+      <input name="marker" type="file" id="marker-upload" style="display:none"/>
+      <div id="map-icon" style="background-image: url(/static/img/map.png); float: left; margin-top: 11em; margin-left: 3.5em; cursor: pointer; display: inline-block; width: 250px; height: 250px; background-size: contain">
+         <div style="position: relative; left: 116px; top: 74px; background-color: rgba(0, 0, 250, .05); display: inline-block; border-radius: 500px; border: 1px solid #00f3;">
+            <img id="marker-icon" src="/static/img/logo/{{ hang }}.marker.png" onerror="this.src='/static/img/marker.png'" width="50" style="margin-bottom: -4px;">
+         </div>
+      </div>
+
+      <div id="play-form" style="width: 45%; margin-left: auto; margin-right: 0; align-items: center; text-align: center;">
+         <h1 class="ui header">احساس مطبوع را به مشتریانتان هدیه دهید</h1>
+         <h3 class="ui header" style="margin-bottom: 1.8em;">سامانه مدیریت جابه جایی های برخط</h3>
+         <div class="ui fluid input">
+            <input id="username" type="text" placeholder="اسمتان ..">
+         </div>
+         <div class="ui fluid input">
+            <input id="email" type="text" placeholder="پست الکترونیکیتان ..">
+         </div>
+         <div class="ui fluid input">
+            <input id="password" type="text" placeholder="رمز عبور (حداقل ۶ کاراکتر )">
+         </div>
+         <button type="submit" id="play" class="fluid red ui button">به روز رسانی</button>
+      </div>
+   </form>
+   <script>
+      $(function() {
+         $('#logo-icon').click(function() {
+            $('#logo-upload').trigger('click');
+         });
+
+         $('#map-icon').click(function() {
+            $('#marker-upload').trigger('click');
+         });
+
+         function readURL(input, selector) {
+            if (input.files && input.files[0]) {
+               var reader = new FileReader();
+               reader.onload = function(e) {
+                  $(selector).attr('src', e.target.result);
+               }
+               reader.readAsDataURL(input.files[0]);
+            }
+         }
+
+         $("#logo-upload").change(function() {
+            readURL(this, '#logo-icon');
+         });
+
+         $("#marker-upload").change(function() {
+            readURL(this, '#marker-icon');
+         });
+      });
+   </script>
+</div>
+{% endblock %}

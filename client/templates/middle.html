@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block title %}Guide{% endblock %}
+{% block main %}
+<div style="width: 100%; padding: 9%; vertical-align: top;">
+   <div id="flash-icon" onclick="window.location.href='/'" style="cursor: pointer ;width: 7em; height: 7em; margin-top: -4.5em; margin-left: -4.5em; background-image: url(/static/img/flash.jpg);
+      background-position: center;
+      background-size: contain;background-repeat: no-repeat;"></div>
+   <div style="text-align: center; padding-top: 3.5em; direction: rtl">
+      <h1 style="color: #CB242B">پنل و نقشه</h1>
+      <p style="direction: rtl">
+         ورود {{ hang }} با موفقیت انجام شد.
+      </p>
+      <p style="direction: rtl; margin-bottom: 3em;">
+         مسیریابی بدون گوگل‌مپ یا Waze واقعا مشکل است. بخصوص اگر مقصد ناآشنا باشد. یا برای‌اولین بار قرار باشد که‌به آن محله سر بزنیم. شرایط سخت‌تری هم هست. فرض کنید سرزدن به چندین مقصد و رساندن کالا به آنجا در برنامه کاری امروزتان باشد. ابتدا کدام نقطه را انتخاب میکنید. تا در تمام طول مسیر به‌دام ترافیک های سنگین شهر نیوفتید‌‌‌, یا مسیر کمتر و سهل الوصول تری را پیمایش کنید.
+         <a href="/">هوشه</a>
+         اینجاست تا با آن نه تنها یک مسیر و چند مقصد را برنامه ریزی کنید. بلکه مدیریت و مسیریابی تمام ناوگان راننده‌هایتان اعم‌از موتورسیکلت و سواری و کامیون را به بهترین‌نحو و کاملا هوشمند و کارا دردست بگیرید و برروی آن‌ها کنترل و نظارت کامل داشته‌باشید.
+      </p>
+      <p>
+         <span class="ui red button massive" onclick="window.location.href = '@{{ hang }}?play=true&status=true&auto=true&vehicles=1&algorithm=' + window.algorithm + '&fastness=24&pathOnRoad=true&patching=true&ordering=true&rate=.8&key={{ key }}' + (window.protocols.length > 0 ? '&protocols=-' + window.protocols.join('-') : '')" style="margin-left: 3em;"> نقشه </span>
+         <i class="ui huge level down alternate link icon" onclick="window.location.href = '/'" style="transform: rotate(90deg)" title="صفحه اصلی"></i>
+      </p>
+   </div>
+</div>
+{% endblock %}

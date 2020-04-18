@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        window.x = function () {
+            if (typeof XMLHttpRequest !== 'undefined') {
+                return new XMLHttpRequest();
+            }
+            var versions = [
+                "MSXML2.XmlHttp.6.0",
+                "MSXML2.XmlHttp.5.0",
+                "MSXML2.XmlHttp.4.0",
+                "MSXML2.XmlHttp.3.0",
+                "MSXML2.XmlHttp.2.0",
+                "Microsoft.XmlHttp"
+            ];
+
+            var xhr;
+            for (var i = 0; i < versions.length; i++) {
+                try {
+                    xhr = new ActiveXObject(versions[i]);
+                    break;
+                } catch (e) {
+                }
+            }
+            return xhr;
+        };
+
+        window.ajax = function (url, callback, method, data, async) {
+            if (async === undefined) {
+                async = true;
+            }
+            var x = this.x();
+            x.open(method, url, async);
+            x.onreadystatechange = function () {
+                if (x.readyState == 4) {
+                    callback(x.responseText)
+                }
+            };
+            if (method == 'POST') {
+                x.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            }
+            x.send(data)
+        };
+
+        <!--$.ajax('/folan', function(response) {-->
+            <!--alert(response);-->
+        <!--}, 'GET', {}, false);-->
+    </script>
+    <script src="/static/ractive.js"></script>
+    <style>
+        html, body, #template {
+            min-height: 100% !important;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        #map {
+            height: 100%;  /* The height is 400 pixels */
+            width: 100%;  /* The width is the width of the web page */
+        }
+        div.button {
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+            cursor: pointer;
+            border: 2px solid rgba(0, 0, 0, .15);
+            display: none;
+            /* display: inline-block; */
+        }
+
+        div.window {
+            margin: 30px;
+            background-color: rgba(0, 0, 100, .3);
+            border-radius: 10px;
+            /* display: block; */
+            position: absolute;
+            z-index: 99;
+
+            height: calc(100% - 60px);
+            width: calc(100% - 60px);
+            top: 0;
+            overflow-y: scroll;
+        }
+
+        #hangs .item {
+            margin: 30px;
+            background-color: rgba(255, 255, 255, .7);
+            border-radius: 10px;
+            width: calc(100% - 60px - 40px);
+            padding: 5px 20px;
+            font-size: 4em;
+        }
+    </style>
+</head>
+<body></body>
+<script id="template" type="text/ractive">
+{% raw %}
+<div id="map"></div>
+<div id="hangs" class="window" style="display: {{ hangs.length == 0 ? 'none' : 'block' }}">
+    <input class="item" value="{{ user }}">
+    {{#if ! uniqueness}}
+        <div class="item" style="color: red; font-weight: bold">
+            unique name plz
+        </div>
+    {{/if}}
+    {{#each hangs}}
+        <div on-click="['getKey', this, user]" class="item">{{ this }}</div>
+    {{/each}}
+</div>
+<!--<div id="clan" class="window"></div>-->
+{% endraw %}
+</script>
+<script>
+// #2 on-click on leave -> .hang = null
+// #2 on-click on clan -> display=block on setting div
+// #2 on-click on insert -> insert shift
+// setInterval on ajax to get notifications -> if any -> suggest()
+// play() done()
+// #2 stop()
+
+var ractive = new Ractive({
+    target: 'body',
+    template: '#template',
+    data: {
+        hangs: [],
+        hang: null,
+        user: null,
+        uniqueness: false,
+        key: null,
+        path: null,
+        map: null,
+        play: null,
+        pause: null,
+        done: null,
+        path_look: null,
+    }
+});
+
+ractive.observe( 'user', function ( value, oldValue, keypath ) {
+    if(value) {
+        window.ajax('/v0.1/!uniqueness=' + value, function(response) {
+            response = JSON.parse(response);
+            ractive.set('uniqueness', response.uniqueness);
+        }, 'GET', null, true);
+    } else ractive.set('uniqueness', false);
+});
+
+function showClans() {
+    window.ajax('/v0.1/!hangs', function(response) {
+        // alert(response);
+        response = JSON.parse(response);
+        // response = [{hang: 'food'}];
+        hangs = ractive.get('hangs');
+        for (var i=0; i<response.length; i++) hangs.push(response[i].hang);
+        if (hangs.length == 0) alert('no hangs available please refresh');
+        ractive.update('hangs');
+    }, 'GET', null, false);
+}
+
+ractive.observe( 'hang', function ( value, oldValue, keypath ) {
+    if(!value) { // if in cookie set else show clans to choose
+        showClans();
+    }
+});
+
+ractive.on('getKey', function(_, hang, user) {
+    if(user) {
+        window.ajax('/v0.1/' + hang + '/' + user, function(response) {
+            ractive.set('hang', hang);
+            ractive.set('hangs', []);
+            ractive.set('key', response);
+            // start sending location
+        }, 'PUT', null, true);
+    }
+    // requests.put(host + '/food/{}'.format(name), data={'key': b_key}).text
+});
+
+
+setInterval(function() {
+    var hang = ractive.get('hang');
+    var user = ractive.get('user');
+    var key = ractive.get('key');
+    if (hang && user && key) {
+        if (navigator && navigator.geolocation) {
+             navigator.geolocation.getCurrentPosition(function(position) {
+                  alert(position.coords.latitude + '  ' + position.coords.altitude);
+                  window.ajax('/v0.1/' + hang + '/' + user + '/@' + position.coords.latitude + ',' + position.coords.longitude, function() {}, 'POST', 'key=' + key, true);
+             }, function(error) {});
+        }
+        if (!ractive.get('path')) {
+            window.ajax('/v0.1/' + hang + '/' + user + '/@messages?key=' + key, function(response) {
+                // alert(response);
+                response = JSON.parse(response);
+                if (response.length > 0) {
+                    response = response[0];
+                    ractive.set('path', response);
+                    // show path on map from simulation.html
+                    p = window.path([response.points[1].location[0], response.points[1].location[1]], [response.points[0].location[0], response.points[0].location[1]]);
+                    p[0].setMap(ractive.get('map'));
+                    p[1].setMap(ractive.get('map'));
+                    p[2].setMap(ractive.get('map'));
+                    ractive.set('path_look', p);
+                    ractive.get('pause').style.display = 'inline-block';
+                    ractive.get('play').style.display = 'inline-block';
+                }
+            }, 'GET', '', true);
+        }
+    }
+}, 7000);
+
+
+function button(controlDiv, map, size, margin, color) {
+    var controlUI = document.createElement('div');
+    controlUI.className = "button";
+    controlUI.style.backgroundColor = '#fff';
+    controlUI.style.backgroundColor = color;
+    controlUI.style.width = size + 'px';
+    controlUI.style.height = size + 'px';
+    controlUI.style.marginBottom = margin + 'px';
+    controlDiv.appendChild(controlUI);
+    return controlUI;
+}
+var uluru = {lat: 35.6983379, lng: 51.3852009};
+
+function initMap() {
+    var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: uluru,
+        disableDefaultUI: true,
+    });
+    var triangle = function(lat, lng) {
+         var triangleCoords = [
+            {lat: lat + .0026, lng: lng},
+            {lat: lat - .0024, lng: lng + .0035},
+            {lat: lat - .0024, lng: lng - .0035},
+            {lat: lat + .0026, lng: lng},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: '#0000FF',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#0000FF',
+            fillOpacity: 0.35
+         });
+
+         return t;
+    };
+
+    var square = function(lat, lng) {
+         var triangleCoords = [
+            {lat: lat + .0029, lng: lng + .0035},
+            {lat: lat - .0029, lng: lng + .0035},
+            {lat: lat - .0029, lng: lng - .0035},
+            {lat: lat + .0029, lng: lng - .0035},
+            {lat: lat + .0029, lng: lng + .0035},
+         ];
+            // Construct the polygon.
+         var t = new google.maps.Polygon({
+            paths: triangleCoords,
+            strokeColor: '#00FF00',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#00FF00',
+            fillOpacity: 0.35
+         });
+
+         return t;
+    };
+
+    var line = function(s, t) {
+         var flightPlanCoordinates = [
+            {lat: s[0], lng: s[1]},
+            {lat: t[0], lng: t[1]},
+         ];
+         var flightPath = new google.maps.Polyline({
+            path: flightPlanCoordinates,
+            geodesic: true,
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.2,
+            strokeWeight: 1
+         });
+         return flightPath;
+    }
+
+    window.path = function(s, t) {
+         sq = square(s[0], s[1]);
+         tr = triangle(t[0], t[1]);
+         l = line(s, t);
+         return [sq, tr, l];
+    }
+
+    ractive.set('map', map);
+    var centerControlDiv = document.createElement('div');
+    size = 100;
+    centerControlDiv.style.padding_left = '-' + (size * 1.5) + 'px';
+    var pause = button(centerControlDiv, map, size, 30 + size / 2, '#f00');
+    var play = button(centerControlDiv, map, size * 2, 30, '#0f0');
+    var done = button(centerControlDiv, map, size * 2, 30, '#fd0');
+    ractive.set('play', play);
+    ractive.set('pause', pause);
+    ractive.set('done', done);
+    pause.style.marginRight = size / 2 + 20 + 'px';
+    play.addEventListener('click', function() {
+        // ack ajax
+        window.ajax(
+            '/v0.1/' + ractive.get('hang') +
+            '/~' + ractive.get('path')._id +
+            '/@ack', function(response) {}, 'POST', 'key=' + ractive.get('key'), true);
+        play.style.display = 'none';
+        pause.style.display = 'none';
+        done.style.display = 'inline-block';
+    });
+    done.addEventListener('click', function() {
+        // done ajax
+        window.ajax(
+            '/v0.1/' + ractive.get('hang') +
+            '/~' + ractive.get('path')._id +
+            '/@done', function(response) {}, 'POST', 'key=' + ractive.get('key'), true);
+        done.style.display = 'none';
+        ractive.set('path', null);
+        p = ractive.get('path_look');
+        p[0].setMap(null);
+        p[1].setMap(null);
+        p[2].setMap(null);
+        ractive.set('path_look', null);
+    });
+    map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(centerControlDiv);
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ map_api_key }}&callback=initMap"></script>
+</html>

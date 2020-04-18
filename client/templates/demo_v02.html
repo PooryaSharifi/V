@@ -1,0 +1,1269 @@
+{% extends "layout.html" %}
+{% block title %}Index{% endblock %}
+{% block import %}
+   <link rel="stylesheet" href="/static/leaflet/1.5.1/leaflet.css">
+   <script src="/static/leaflet/1.5.1/leaflet.js"></script>
+   <script src="/static/zipcelx.js"></script>
+{% endblock %}
+{% block style %}
+<style>
+        html, body, main, #target {
+            min-height: 100% !important;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        #map {
+            height: 100%;  /* The height is 400 pixels */
+            width: 100%;  /* The width is the width of the web page */
+        }
+        div.button {
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+            cursor: pointer;
+            border: 2px solid rgba(0, 0, 0, .15);
+            display: none;
+            /* display: inline-block; */
+        }
+
+        div.window {
+            margin: 30px;
+            background-color: rgba(0, 0, 100, .3);
+            border-radius: 10px;
+            /* display: block; */
+            position: absolute;
+            z-index: 99;
+
+            height: calc(100% - 60px);
+            width: calc(100% - 60px);
+            top: 0;
+            overflow-y: scroll;
+        }
+
+        #hangs .item {
+            margin: 30px;
+            background-color: rgba(255, 255, 255, .7);
+            border-radius: 10px;
+            width: calc(100% - 60px - 40px);
+            padding: 5px 20px;
+            font-size: 4em;
+        }
+
+        .panel.header {
+            padding: .32857143em .78571429em .38571429em .78571429em !important;
+        }
+
+        .ui.table thead tr:first-child > th {
+           position: sticky !important;
+           top: 0;
+           z-index: 33;
+           background-color: white;
+        }
+
+        .status.divider {
+           display: inline-block;
+           height: 2.4em;
+           margin-bottom: -.9em;
+           margin-left: .5em;
+           width: 1px;
+           background-color: #ddd;
+        }
+
+   .custom.icon {
+      display: inline-block;
+      height: 6em;
+      width: 6em;
+      background-color: #DEF2F1;
+      border-radius: 1em;
+      border: solid 2px #F1F6F7;
+      box-shadow: 0px 4px 15px -5px;
+      background-position: center;
+      background-size: cover;
+   }
+
+   .custom.icon.tiny {
+      width: 3em;
+      height: 3em;
+      margin-left: .5em;
+   }
+</style>
+{% endblock %}
+{% block main %}
+<div id="target"></div>
+<script id="template" type="text/ractive">
+{% raw %}
+<div id="map" style="width: 100%; height: 58%"></div>
+<div id="panel" style="width: 100%; height: calc(42% - 3.5em); background-color: rgba(0, 0, 0, .00); overflow-y: auto; overflow-x: hidden">
+   <div style="position: absolute; right: 0; z-index: 99; padding-top: 3px; margin-right: 10px; background-color: white;">
+       <form style="display: inline-block">
+           <input name="orders" type="file" id="orders-upload" style="display:none"/>
+           <div on-click="['upload']" class="ui compact {{ lock ? 'disabled' : '' }} labeled icon button" style="background-color: #00b4ab; color: white; box-shadow: -6px 0px 10px -5px black; font-family: Lato, 'Helvetica Neue' !important;">
+              <i class="upload icon"></i>
+              {% endraw %} {{ _('Upload') }} {% raw %}
+           </div>
+       </form>
+       <button
+       onclick="(window.ractive.get('lock')) ? unlock() : lock()"
+       class="ui compact icon button"
+       style="background-color: {{ lock ? '#db2828' : '#00b4ab' }}; display: inline-block; color: white; font-family: Lato, 'Helvetica Neue' !important;">
+          <i class="lock {{ lock ? '' : 'open' }} icon"></i>
+       </button>
+   </div>
+   <table class="ui very basic celled striped table" style="margin-top: 0em;">
+      <thead>
+         <tr>
+            <th class="panel header" style="text-align: center">
+               <i id="delete-many" class="circular inverted red ui icon times"></i>
+            </th>
+            <th class="panel header">{% endraw %} {{ _('Employee') }} {% raw %}</th>
+            <th class="panel header" style="white-space:nowrap;">
+               {{#each clocks}}
+                  <span style="width: 4em; display: inline-block; text-align: center; margin-top: .2em;">{{ ((this / 2) % 24 < 10 ? '0' : '') + parseInt(this / 2) % 24 }}:{{ ('0' + (this % 2) * 30).substr(this % 2, 2 + this % 2) }}</span>
+               {{/each}}
+               <div style="width: 3em; height: 20px; background-color: #00b4ab; margin-top: -1.3em; text-align: center; margin-left: {{ .5 + clock / 1800 * 4 }}em; border-radius: 2px">
+                  <div style="width: 2px; height: 400px; background-color: #00b4ab; display: inline-block; margin-top: 20px"></div>
+               </div>
+            </th>
+         </tr>
+      </thead>
+      <tbody id="table">
+         <button id="dragger" class="ui icon button yellow point" style="position: absolute; display: none; cursor: none;">
+            <i class="map marker alternate icon"></i>
+         </button>
+         {{#each porters :key}}
+            <tr class="queue">
+               <td class="collapsing">
+                  <div class="ui fitted slider checkbox" style="margin-left: .75em">
+                     <input type="checkbox" value="{{ key }}"> <label></label>
+                  </div>
+               </td>
+               <td class="collapsing">
+                  <h4 class="ui image header">
+                     <img on-mouseover="['porter_pointer', this, true]" on-mouseout="['porter_pointer', this, false]" src="/static/img/avatar/{{ ['lena', 'elliot', 'matthew'][Math.floor(Math.random() * 3)] }}.png" class="ui mini rounded image">
+                     <div class="content">
+                        {{ key }} <i title="fake gps used" class="secret user {{ this.guilty ? 'icon' : '' }}"></i> <i class="wheelchair {{ this.lazy ? 'icon' : '' }}"></i>
+                        <div class="sub header"> {{ key.toString()[0] == '+' || !isNaN(key.toString()[0]) ? 'Human' : 'Ai' }} Resources </div>
+                     </div>
+                  </h4>
+               </td>
+               <td>
+                  {{#if ('points' in this) }}
+                     <span style="z-index: 30; position: relative; opacity: .52;">
+                        <button class="ui icon {{ this.at ? 'red' : 'blue' }} button point">
+                           <div style="height: auto; transition: opacity .1s ease; width: auto; border: solid rgba(255, 255, 255, .72) 2px; border-radius: 500px">
+                              <div style="height: .13em; width: calc(2px + {{ 1.5 * this.points.length / 7.5 }}em); background-color: rgba(255, 255, 255, .72); margin: .22em; border-radius: 400px;"/>
+                              <div style="height: 3px; width: calc(20px + {{ 4.2 * this.points.length / 8.5 + duration(this.points[0].par, -1, this.points.length - 1) / 7.5 }}em); position: absolute; background-color: red; margin-left: calc(2px + {{ 1.5 * this.points.length / 7.5 }}em); margin-top: -.36em; z-index: -1"/>
+                           </div>
+                        </button>
+                     </span>
+                     {{#each this.points }}
+                        <span style="z-index: 30; position: relative; opacity: .82;">
+                           <button class="ui icon button {{ 'at' in this ? 'green' : 'yellow' }} point"
+                              {{#if 'par' in this }}
+                                 on-mouseover="['pointer', this.par, this.idx, true]"
+                                 on-mouseout="['pointer', this.par, this.idx, false]"
+                                 on-mousedown="['drag', this.par, this.idx]"
+                                 par="{{ this.par }}"
+                                 style="margin-left: {{ (duration(this.par, this.idx - 1, this.idx) + 1.5) / 8.5 + 'em' }}; margin-right: calc(-2 * 1.18571429em - 3px)"
+                              {{/if }}
+                           >
+                             <i class="map marker alternate icon"></i>
+                           </button>
+                        </span>
+                        <!-- {{ this._id }} -->
+                     {{/each }}
+                  {{else }}
+                     -
+                  {{/if }}
+               </td>
+            </tr>
+         {{/each }}
+      </tbody>
+   </table>
+</div>
+<div id="macro-bar" style="line-height: 3.4em; border-top: 1px solid #E8E8E9;">
+   <i class="big road icon" style="width: 1.4em;"></i> {{ (m / 1000).toFixed(2) }} (KM) <span class="status divider"/>
+   <i class="big clock icon" style="width: 1.4em;"></i> {{ (its / 60).toFixed(2) }} (Min) <span class="status divider"/>
+   <i class="big clock outline icon" style="width: 1.4em;"></i> {{ (s / 60).toFixed(2) }} (Min) <span class="status divider"/>
+   <i class="big map marker alternate icon" style="opacity: .8; margin-top: .3em"></i>
+   <i class="big map marker alternate icon" style="opacity: .8; margin-left: -1em; margin-top: -.3em"></i>
+   <div style="width: 3px; height: 15px; background-color: #444; display: inline-block; transform: rotate(50deg); margin-left: -2.05em; margin-bottom: -1.3em"/>
+   <span style="margin-left: 1.6em;">{{ batches }}</span>
+   <span class="status divider"/>
+   <i class="big blind icon" style="width: 1.4em;"></i> {{ late }} <span class="status divider"/>
+   <div on-click="['notify', 'T']" class="ui right floated icon button" style="direction: right; margin-top: .51em; margin-right: .75em; padding: .47em .47em .7em .47em; background-color: #30A4D7; color: white">
+      <i class="large telegram plane icon"></i>
+   </div>
+   <div on-click="['notify', 'N']" class="ui right floated small red labeled icon button" style="direction: right; margin-top: .55em; margin-right: .25em; /* margin-right: .75em; */">
+       {% endraw %} {{ _('Notify Paths') }} {% raw %}
+       <i class="big rocketchat icon" style="width: 1.6em;"></i>
+   </div>
+   <div on-click="['algorithm']" class="ui right floated small red labeled icon button" style="display: {{ lock ? 'block' : 'none' }}; direction: right; margin-top: .55em; margin-right: .25em;">
+       {% endraw %} {{ _('Algorithm') }} {% raw %}
+       <i class="large calendar alternate outline icon" style="width: 1.6em;"></i>
+   </div>
+   <div on-click="['download']" class="ui right floated small purple labeled icon dropdown button" style="background-color: #00b4ab; display: {{ lock ? 'none' : 'block' }}; direction: right; margin-top: .55em; margin-right: .25em;">
+       {% endraw %} {{ _('Paths Download') }} {% raw %}
+      <i class="download icon"></i>
+   </div>
+   <div on-click="['evaluate']" class="ui right floated small purple labeled icon dropdown button" style="display: {{ lock ? 'none' : 'block' }}; direction: right; margin-top: .55em; margin-right: .25em;">
+       {% endraw %} {{ _('Evaluate') }} {% raw %}
+       <i class="large tasks icon" style="width: 1.6em;"></i>
+       <div class="menu" style="color: rgb(135, 50, 119); z-index: 100">
+         <div class="item" style="font-size: 1.2em">
+            {{ 'duration' in scores ? 'duration: ' + scores.duration.toFixed(0) + ' (s)' : '' }}
+         </div>
+         <div class="item" style="font-size: 1.2em">
+            {{ 'duration_plus' in scores ? '+ stop times: ' + scores.duration_plus.toFixed(0) + ' (s)' : '' }}
+         </div>
+         <div class="item" style="font-size: 1.2em">
+            {{ 'distance' in scores ? 'distance: ' + scores.distance.toFixed(0) + ' (m)' : '' }}
+         </div>
+         <div class="item" style="font-size: 1.2em">
+            {{ 'efficiency' in scores ? 'efficiency: ' + scores.efficiency.toFixed(1) + '%' : '' }}
+         </div>
+         <div class="header">
+            <i class="hand peace icon"></i>
+            <span style="float: right">{% endraw %} {{ _('Result') }} {% raw %}</span>
+         </div>
+      </div>
+   </div>
+
+   <span style="float: right; margin-right: .5em; color: red; font-size: .9em"> {{ path_tail == '' ? '' : path_tail.split(' ')[1].split('.')[0] }} </span>
+   <span style="float: right; margin-right: .5em; color: red; font-size: .9em"> {{ path_head == '' ? '' : path_head.split(' ')[1].split('.')[0] }}, </span>
+   <span style="float: right; margin-right: .5em; font-size: .9em"> <a target="_blank" rel="noopener noreferrer" href="./@{{ hang }}/paths/{{ path_id }}">{{ path_id }}</a> </span>
+<!--   <span style="float: right; margin-right: .5em; color: purple; font-size: .9em"> {{ 'duration' in scores ? 'duration: ' + scores.duration.toFixed(0) : '' }} </span>-->
+<!--   <span style="float: right; margin-right: .5em; color: purple; font-size: .9em"> {{ 'efficiency' in scores ? 'efficiency: ' + scores.efficiency.toFixed(1) + '% ,' : '' }} </span>-->
+</div>
+<div id="hangs" class="window" style="display: {{ hangs.length == 0 ? 'none' : 'block' }}">
+    <input class="item" value="{{ user }}">
+    {{#if ! uniqueness}}
+        <div class="item" style="color: red; font-weight: bold">
+            unique name plz
+        </div>
+    {{/if}}
+    {{#each hangs}}
+        <div on-click="['getKey', this, user]" class="item">{{ this }}</div>
+    {{/each}}
+</div>
+<!--<div id="clan" class="window"></div>-->
+{% endraw %}
+</script>
+<script>
+const ObjectId = (m = Math, d = Date, h = 16, s = s => m.floor(s).toString(h)) =>
+    s(d.now() / 1000) + ' '.repeat(h).replace(/./g, () => s(m.random() * h));
+function calcCrow(lat1, lon1, lat2, lon2) {
+      var R = 6372.500; // km
+      var dLat = toRad(lat2-lat1);
+      var dLon = toRad(lon2-lon1);
+      var lat1 = toRad(lat1);
+      var lat2 = toRad(lat2);
+
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      var d = R * c;
+      return d;
+}
+
+function toRad(Value) { return Value * Math.PI / 180; }
+
+var ractive = new Ractive({
+   target: '#target',
+   template: '#template',
+   data: {
+      clocks: [{% for i in [46, 47, 0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28] %}{{ now.hour * 2 + (1 if now.minute >= 30 else 0) + i }}, {% endfor %}],
+      clock: 0,
+      hangs: [],
+      hang: '{{ hang }}',
+      user: null,
+      uniqueness: false,
+      key: '{{ key }}',
+      path: null,
+      map: null,
+      play: null,
+      pause: null,
+      done: null,
+      path_look: null,
+
+      late: 0,
+
+      porters_date: 0,
+      porters: {},
+      paths_date: 0,
+      paths: {},
+      pcs: {},
+
+      path_id: '',
+      path_head: '',
+      path_tail: '',
+
+      lock: true,
+
+      duration: function(_id, u, v) {
+         if (v - u == 1) {
+            var paths = this.get('paths');
+            if (!(_id in paths)) return 0;
+            var _tail_ = paths[_id].tail;
+            v = _tail_[v];
+            if ( !('duration' in v)) {
+               u = u == -1 ? this.get('paths')[_id].head : this.get('paths')[_id].tail[u];
+               // console.log(google.maps.geometry.spherical.computeDistanceBetween({lat: u[0], lng:u[1]}, {lat: v[0], lng: v[1]}));
+               v.duration = Math.pow(calcCrow(v[0], v[1], u[0], u[1]), .74) * 5;
+            }
+            return v.duration;
+         } else {
+            if (_id == undefined) return 0;
+            var d = 0;
+            for (var dg = u; dg < v; dg ++) d += this.get('duration')(_id, dg, dg + 1);
+            return d;
+         }
+      }
+    }
+});
+
+window.ractive = ractive;
+
+ractive.observe( 'user', function ( value, oldValue, keypath ) {
+    if(value) {
+        window.ajax('/v0.2/!uniqueness=' + value, function(response) {
+            response = JSON.parse(response);
+            ractive.set('uniqueness', response.uniqueness);
+        }, 'GET', null, true);
+    } else ractive.set('uniqueness', false);
+});
+
+ractive.observe('paths', function (value, oldValue, keypath) {
+   // it updates every time # TODO correct it.
+   $('#path-icon .tag').html(Object.keys(value).length);
+});
+
+ractive.observe('porters', function (value, oldValue, keypath) {
+   // it updates every time # TODO correct it.
+   $('#porter-icon .tag').html(Object.keys(value).length);
+});
+
+window.capacity = {{ request.args['capacity'][0] if 'capacity' in request.args else 40 }};
+
+ractive.on('algorithm', function() {
+   form = { key: ractive.get('key') };
+   var protocols = window.protocols.length > 0 ? '/-' + window.protocols.join('-') : '';
+   if (window.forcePaths) {
+      form['paths'] = JSON.stringify(window.forcePaths);
+      window.forcePaths = null;
+      protocols += protocols.length == 0 ? '/-N' : '-N';
+   }
+   if ('capacity' in window) {
+      protocols += protocols.length == 0 ? '/-C' + window.capacity : '-C' + window.capacity;
+   }
+   $.post('/v0.2/{{ hang }}/!!!/' + window.algorithm + protocols + '/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else 24 }}', form, function(matches) {
+      if (window.forceCallback) {
+         window.forceCallback(matches);
+         window.forceCall = null;
+      }
+   });
+});
+
+{% if 'patching' in request.args and request.args['patching'][0] == 'true' %}
+   window.patchingInterval = setInterval(function() {
+      ractive.fire('algorithm');
+   }, 8 * 60 * 1000 / {{ request.args['fastness'][0] if 'fastness' in request.args else 24 }});
+   window.patching = true;
+{% endif %}
+
+function hex2rgb(hex) {
+    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+    var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+        return r + r + g + g + b + b;
+    });
+
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function rgb2hex(c) {
+    return "#" + ((1 << 24) + (c.r << 16) + (c.g << 8) + c.b).toString(16).slice(1);
+}
+
+ractive.on('pointer', function(_, par, idx, flag) {
+   var paths = ractive.get('paths'); // ##
+   if (!(par in paths)) {
+      ractive.set('path_id', '');
+      ractive.set('path_head', '');
+      ractive.set('path_tail', '');
+      return;
+   }
+   var marker = paths[par].marker[1 + 2 * idx];
+   fill = marker.options.fillColor;
+   stroke = marker.options.color;
+   weight = marker.options.weight;
+   fill = hex2rgb(fill);
+   stroke = hex2rgb(stroke);
+   if (flag) {
+      if ('_id' in marker && 'head' in marker && 'tail' in marker) {
+         ractive.set('path_id', marker._id);
+         ractive.set('path_head', marker.head);
+         ractive.set('path_tail', marker.tail);
+      } else {
+         ractive.set('path_id', '');
+         ractive.set('path_head', '');
+         ractive.set('path_tail', '');
+      }
+      fill.r /= 2;
+      fill.g /= 2;
+      fill.b /= 2;
+      stroke.r /= 2;
+      stroke.g /= 2;
+      stroke.b /= 2;
+      weight *= 5;
+   } else {
+      fill.r *= 2;
+      fill.g *= 2;
+      fill.b *= 2;
+      stroke.r *= 2;
+      stroke.g *= 2;
+      stroke.b *= 2;
+      weight /= 5
+   }
+   marker.setStyle({weight: weight, color: rgb2hex(stroke), fillColor: rgb2hex(fill)});
+});
+
+ractive.on('porter_pointer', function(_, me, flag) {
+   // console.log(me);
+   weight = me.marker.options.weight;
+   if (flag)
+      me.marker.setStyle({weight: weight * 5});
+   else
+      me.marker.setStyle({weight: weight / 5});
+});
+
+var dragged_par = null;
+var dragged_idx = null;
+ractive.on('drag', function(_, par, idx) {
+    $('#table').css('cursor', 'none');
+    $('#table .ui.button').css('cursor', 'none');
+    dragged_par = par;
+    dragged_idx = idx;
+    $('#dragger').css({
+        'display': 'block',
+        'top': 0,
+        'left': 0,
+    });
+});
+
+function move(s_par, s_idx, t_par, t_idx) {
+   // console.log(s_idx + ', ' + t_idx);
+   var paths = window.paths;
+   if (paths == null) return;
+   var s = 0;
+   var t = 0;
+   for (var i = 0; i < paths.length; i ++) {
+      if(paths[i]._id == s_par) break;
+      s ++;
+   }
+   for (var i = 0; i < paths.length; i ++) {
+      if(paths[i]._id == t_par) break;
+      t ++;
+   }
+   var s_id = ObjectId();
+   var t_id = ObjectId();
+   _paths_ = ractive.get('paths');
+   // _paths_[s_id] = _paths_[paths[s]._id];
+   // _paths_[t_id] = _paths_[paths[t]._id];
+   for (var i = 0; i < _paths_[paths[s]._id].marker.length; i++) _paths_[paths[s]._id].marker[i].remove();
+   for (var i = 0; i < _paths_[paths[t]._id].marker.length; i++) _paths_[paths[t]._id].marker[i].remove();
+   delete _paths_[paths[s]._id];
+   delete _paths_[paths[t]._id];
+   paths[s]._id = s_id;
+   paths[t]._id = t_id;
+   /* _paths_[t_id].tail.splice(t_idx + 1, 0, _paths_[s_id].tail[s_idx]);
+   _paths_[s_id].tail.splice(s_idx, 1);
+   _paths_[t_id].marker.splice(2 * t_idx + 2, 0, _paths_[s_id].marker[2 * s_idx + 1]);
+   _paths_[t_id].marker.splice(2 * t_idx + 2, 0, _paths_[s_id].marker[2 * s_idx + 2]);
+   _paths_[s_id].marker.splice(2 * s_idx + 1, 2); */
+   var s_length = parseInt(paths[s].points.length / 2);
+   var t_length = parseInt(paths[t].points.length / 2);
+   var ss_idx = s_length + s_idx;
+   var ts_idx = t_length + t_idx;
+   s_idx = s_length - 1 - s_idx;
+   t_idx = t_length - 1 - t_idx;
+   var ss_point = paths[s].points[ss_idx];
+   var s_point = paths[s].points[s_idx];
+   if (s == t) {
+      paths[s].points[s_idx] = paths[s].points[t_idx];
+      paths[s].points[ss_idx] = paths[t].points[ts_idx];
+      paths[s].points[t_idx] = s_point;
+      paths[s].points[ts_idx] = ss_point;
+   } else {
+      // console.log(ss_idx + ' -- ' + s_idx);
+      // console.log(ts_idx + ' ++ ' + t_idx);
+      paths[s].points.splice(ss_idx, 1);
+      paths[s].points.splice(s_idx, 1);
+      if (ts_idx == t_length * 2) {
+         paths[t].points.push(ss_point);
+         paths[t].points.unshift(s_point);
+      } else {
+         paths[t].points.splice(ts_idx, 0, ss_point);
+         paths[t].points.splice(t_idx + 1, 0, s_point);
+      }
+   }
+   var path_s = s;
+   var s_porter = paths[s].porters[0].porter;
+   var t_porter = paths[t].porters[0].porter;
+
+   var porters = window.porters;
+   s = 0;t = 0;
+   for (var i = 0; i < porters.length; i ++) {
+      if(porters[i].porter == s_porter) break;
+      s ++;
+   }
+   for (var i = 0; i < porters.length; i ++) {
+      if(porters[i].porter == t_porter) break;
+      t ++;
+   }
+
+   var pp_idx = 0;
+   for (var i = 0; i < porters[s].points.length; i++) {
+      if(porters[s].points[i]._id == s_point._id) break;
+      pp_idx ++;
+   }
+   porters[s].points[pp_idx].idx = porters[t].points.length;
+   porters[t].points.push(porters[s].points[pp_idx]);
+   porters[s].points.splice(pp_idx, 1);
+
+   for (var i = 0; i < porters[s].points.length; i++) {porters[s].points[i].par = s_id; porters[s].points[i].idx = i;}
+   for (var i = 0; i < porters[t].points.length; i++) porters[t].points[i].par = t_id;
+   if (paths[path_s].points.length == 0) paths.splice(path_s, 1);
+   if (porters[s].points.length == 0) delete porters[s]['points'];
+
+   ractive.set('porters', {});
+   /* ractive.set('paths', {});
+   ractive.set('pcs', {}); */
+
+   // console.log(JSON.parse(JSON.stringify(paths)));
+   // console.log(JSON.parse(JSON.stringify(porters)));
+}
+
+$('#table').mouseup(function(e) {
+   if (dragged_par == null || dragged_idx == null) return;
+   $('#table').css('cursor', 'default');
+   $('#dragger').css('display', 'none');
+
+   var queue = $(e.target).closest('.queue');
+   var to_par = null;
+   var to_idx = 0
+   queue.find('.ui.icon.button.yellow').each(function(idx, btn) {
+      btn = $(btn);
+      to_par = btn.attr('par');
+      if (btn.offset().left < e.pageX) to_idx ++;
+   });
+   move(dragged_par, dragged_idx, to_par, to_idx);
+   dragged_par = null;
+   dragged_idx = null;
+});
+
+/* $('#table').mouseleave(function() {
+    $('#table').css('cursor', 'default');
+    $('#table .ui.button').css('cursor', 'default');
+    dragged_par = null;
+    dragged_idx = null;
+}); */
+
+$('#table').mousemove(function(e) {
+    if(dragged_par != null && dragged_idx != null) {
+        $('#dragger').css({
+            'display': 'block',
+            'top': e.pageY,
+            'left': e.pageX,
+        });
+    }
+});
+
+var server_now = {{ (now.hour * 60 + now.minute) * 60 + now.second }};
+var client_now = new Date();
+client_now = (client_now.getHours() * 60 + client_now.getMinutes()) * 60 + client_now.getSeconds();
+base_difference = server_now - client_now;
+
+ractive.set('clock', server_now - {{ (now.hour - 1) * 3600 + (1800 if now.minute >= 30 else 0) }});
+
+setInterval(function() {
+   var now = new Date();
+   now = (now.getHours() * 60 + now.getMinutes()) * 60 + now.getSeconds() + base_difference;
+   now -= {{ (now.hour - 1) * 3600 + (1800 if now.minute >= 30 else 0) }};
+   ractive.set('clock', now);
+}, 6000);
+
+{% if 'play' not in request.args or request.args['play'][0] == 'true' %}
+   $.post('/v0.2/client/sims/{{ hang }}/@play=true', {key: ractive.get('key')}, function() {
+      window.vitalization_loop = setInterval(function() {
+         $.post('/v0.2/client/sims/{{ hang }}/@life=60', {key: ractive.get('key')}, function() {});
+      }, 60 * 1000);
+   });
+{% else %}
+   $.post('/v0.2/client/sims/{{ hang }}/@play=false', {key: ractive.get('key')}, function() {});
+{% endif %}
+
+// ## here listener
+window.addEventListener("message", function(e) {
+   ractive.set('porters.' + e.data + '.at', true);
+}, false);
+
+/* ####### here ####### */
+
+   key = ractive.get('key');
+   var uluru = {
+      lat: 35.7122167,
+      lng: 51.3645588
+   };
+   /* var map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 12,
+      center: uluru,
+      fullscreenControl: false,
+      controlSize: 32,
+   }); */
+   // controlSize: 32
+   // fullscreencontrol: false
+   var map = L.map('map', {
+      attributionControl: false,
+   }).setView(uluru, 12);
+
+   // Set up the OSM layer
+   L.tileLayer(
+      'http://localhost:8080/hot/{z}/{x}/{y}.png', {
+         maxZoom: 18,
+         // attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+      }).addTo(map);
+
+   colors = [
+      ['#000', '#eee'],
+      ['#e00', '#e88'],
+      ['#0e0', '#8e8'],
+      ['#00e', '#88e'],
+
+      ['#d800d0', '#da6ed4'],
+      ['#008ad6', '#50a6d6'],
+      ['#00eaf2', '#74f0f8'],
+      ['#a47036', '#bea282'],
+
+      ['#fe147a', '#dc86ac'],
+      ['#628642', '#92b874'],
+      ['#5c7600', '#aafe00'],
+      ['#fefe00', '#fefe7e'],
+   ];
+
+   var triangle = function(lat, lng, c) {
+      var triangleCoords = [{
+            lat: lat + .00065,
+            lng: lng
+         },
+         {
+            lat: lat - .0006,
+            lng: lng + .000875
+         },
+         {
+            lat: lat - .0006,
+            lng: lng - .000875
+         },
+         {
+            lat: lat + .00065,
+            lng: lng
+         },
+      ];
+      // Construct the polygon.
+      var t = L.polygon(triangleCoords, {
+         color: colors[c][0],
+         opacity: 1,
+         weight: 2,
+         fillColor: colors[c][1],
+         fillOpacity: 0.85,
+      }).addTo(map);
+      return t;
+   };
+
+   var square = function(lat, lng, c) {
+      var triangleCoords = [{
+            lat: lat + .000725,
+            lng: lng + .000875
+         },
+         {
+            lat: lat - .000725,
+            lng: lng + .000875
+         },
+         {
+            lat: lat - .000725,
+            lng: lng - .000875
+         },
+         {
+            lat: lat + .000725,
+            lng: lng - .000875
+         },
+         {
+            lat: lat + .000725,
+            lng: lng + .000875
+         },
+      ];
+      // Construct the polygon.
+      var t = L.polygon(triangleCoords, {
+         color: colors[c][0],
+         opacity: 1,
+         weight: 2,
+         fillColor: colors[c][1],
+         fillOpacity: 0.85,
+      }).addTo(map);
+      return t;
+   };
+
+   var line = function(s, t, c) {
+      {% if 'pathOnRoad' in request.args %}
+         var flightPath;
+         $.ajax({
+            url: '{{ osrm_host }}/route/v1/car/' + s[1] + ',' + s[0] + ';' + t[1] + ',' + t[0] + '?steps=true',
+            async: false,
+            dataType: 'json',
+            success: (route) => {
+               route = route.routes[0].legs[0].steps;
+               var flightPlanCoordinates = [{
+                  lat: s[0],
+                  lng: s[1]
+               }];
+               route.map((step) => {
+                  step.intersections.map((intersection) => {
+                     flightPlanCoordinates.push({
+                        lat: intersection.location[1],
+                        lng: intersection.location[0],
+                     });
+                  })
+               });
+               flightPlanCoordinates.push({
+                  lat: t[0],
+                  lng: t[1]
+               });
+               flightPath = L.polyline(flightPlanCoordinates, {
+                  geodesic: true,
+                  color: colors[c][0],
+                  opacity: 0.7,
+                  weight: 2,
+               }).addTo(map);
+               // return flightPath;
+            }
+         });
+         return flightPath;
+         // $.post('{{ osrm_host }}/route/v1/car/' + s[1] + ',' + s[0] + ';' + t[1] + ',' + t[0] + '?steps=true', );
+      {% else %}
+         var flightPlanCoordinates = [{
+               lat: s[0],
+               lng: s[1]
+            }, {
+               lat: t[0],
+               lng: t[1]
+            },
+         ];
+         var flightPath = L.polyline(flightPlanCoordinates, {
+            geodesic: true,
+            color: colors[c][0],
+            opacity: 0.7,
+            weight: 2,
+         }).addTo(map);
+         return flightPath;
+      {% endif %}
+   }
+
+   var path_marker = function(s, tail) {
+      polygons = [square(s[0], s[1], 0)];
+      tail.unshift(s);
+      for (var i = 1; i < tail.length; i++) {
+         polygons.push(triangle(tail[i][0], tail[i][1], 0));
+         polygons.push(line(tail[i - 1], tail[i], 0));
+      }
+      tail.shift();
+      return polygons;
+   }
+
+   function setDeceleratingTimeout(callback, factor, times) {
+      var internalCallback = function(tick, counter) {
+         return function() {
+            if (--tick >= 0) {
+               window.setTimeout(internalCallback, ++counter * factor);
+               callback();
+            }
+         }
+      }(times, 0);
+
+      window.setTimeout(internalCallback, factor);
+   };
+
+   vehicle_entrance = true;
+   four_modulus = 0;
+   window._paths = []
+   setInterval(function() {
+      var porters_date = ractive.get('porters_date');
+      var porters = ractive.get('porters');
+      var paths = ractive.get('paths');
+      var paths_date = ractive.get('paths_date');
+      var pcs = ractive.get('pcs');
+      $.post('/v0.2/!!/{{ hang }}/paths/@undone', {
+         key: key
+      }, function(_paths) {
+         if (!ractive.get('lock') && 'paths' in window) _paths = window.paths;
+         window._paths = _paths;
+         for (var i = 0; i < _paths.length; i++) {
+            var _id = _paths[i]._id;
+            if (_paths[i].points[_paths[i].points.length - 1] == undefined) {
+               console.log(_paths[i].points);
+               console.log(_paths[i].points.length);
+               console.log('hu hu huli');
+            }
+            var head = _paths[i].points[_paths[i].points.length - 1].location;
+            var tail = _paths[i].points.slice(0, parseInt(_paths[i].points.length / 2))
+            tail = tail.reverse();
+            location_tail = tail.map(function(p) {
+               return p.location
+            });
+            if (!(_id in paths)) {
+               paths[_id] = {
+                  marker: path_marker(head, location_tail)
+               };
+               for (var iig = 0; iig < (paths[_id].marker.length - 1) / 2; iig++) {
+                  var polygon = paths[_id].marker[1 + 2 * iig];
+                  polygon._id = tail[iig]['_id'];
+                  polygon.head = tail[iig].head;
+                  polygon.tail = tail[iig].tail;
+                  polygon.on('mouseover', function() {
+                     ractive.set('path_id', this._id);
+                     ractive.set('path_head', this.head);
+                     ractive.set('path_tail', this.tail);
+                  });
+
+                  polygon.on('mouseout', function() {
+                     // ractive.set('path_id', '');
+                     // ractive.set('path_head', '');
+                     // ractive.set('path_tail', '');
+                  });
+               }
+            }
+            // here
+            paths[_id].head = head;
+            paths[_id].tail = location_tail;
+            paths[_id]._date = paths_date;
+            if (!('color' in paths[_id]))
+               paths[_id].color = 0;
+            else if (_paths[i].porters.length && paths[_id].color === 0) {
+               color = Math.floor(Math.random() * 11 + 1);
+               paths[_id].marker[0].setStyle({
+                  color: colors[color][0],
+                  fillColor: colors[color][1]
+               });
+               for (j = 0; j < (paths[_id].marker.length - 1) / 2; j++) {
+                  paths[_id].marker[2 * j + 1].setStyle({
+                     color: colors[color][0],
+                     fillColor: colors[color][1]
+                  });
+                  paths[_id].marker[2 * j + 2].setStyle({
+                     color: colors[color][0]
+                  });
+               }
+               paths[_id].color = color;
+            }
+            if (paths[_id].color > 0) {
+               var porter = _paths[i].porters[0].porter;
+               pcs[porter] = paths[_id].color;
+            }
+            if (_paths[i].porters.length > 0 && _paths[i].porters[0].ack == true) {
+               var busy_porter = _paths[i].porters[0].porter;
+               if (busy_porter in porters && 'points' in porters[busy_porter] && porters[busy_porter].points.length == tail.length) {
+                  var _points_ = porters[busy_porter].points;
+                  if (!('par' in porters[busy_porter].points[0])) {
+                     for (var jj = 0; jj < _points_.length; jj++) {
+                        _points_[jj].par = _id;
+                        _points_[jj].head = tail[jj].head;
+                        _points_[jj].tail = tail[jj].tail;
+                        _points_[jj]._id = tail[jj]._id;
+                        _points_[jj].idx = jj;
+                     }
+                     porters[busy_porter].at_idx = 0;
+                  }
+                  while (porters[busy_porter].at_idx < tail.length && 'at' in tail[porters[busy_porter].at_idx]) {
+                     _points_[porters[busy_porter].at_idx].at = tail[porters[busy_porter].at_idx].at;
+                     porters[busy_porter].at_idx++;
+                  }
+               }
+            }
+         }
+         for (_id in paths) {
+            if (paths[_id]._date != paths_date) {
+               for (var j = 0; j < paths[_id].marker.length; j++)
+                  paths[_id].marker[j].remove();
+                  // paths[_id].marker[j].setMap(null);
+               delete paths[_id];
+            }
+         }
+         paths_date = 1 - paths_date;
+         ractive.set('paths_date', paths_date);
+         for (var _key in pcs) delete pcs[_key];
+         ractive.update('pcs');
+         ractive.update('paths');
+         ractive.update('porters');
+      });
+
+      $.post('/v0.2/!!/{{ hang }}/porters/@all', {
+         key: key
+      }, function(_porters) {
+         if (!ractive.get('lock') && 'porters' in window) _porters = window.porters;
+         for (var i = 0; i < _porters.length; i++) {
+            var name = _porters[i].porter;
+            var location = _porters[i].location;
+            if (!(name in porters)) {
+               porters[name] = {
+                  marker: L.circle(uluru, {
+                      color: '#000',
+                      color: '#000',
+                      opacity: 1,
+                      weight: 2,
+                      fillColor: '#fff',
+                      fillOpacity: 1,
+                      radius: 80
+                  }).addTo(map)
+               }
+            }
+            porters[name].marker.setLatLng({
+               lat: location[0],
+               lng: location[1]
+            });
+            if (name in pcs) {
+               porters[name].marker.setStyle({
+                  color: colors[pcs[name]][0],
+                  fillColor: colors[pcs[name]][1]
+               });
+            } else {
+               porters[name].marker.setStyle({
+                  color: colors[0][0],
+                  fillColor: colors[0][1]
+               });
+            }
+            porters[name].location = location;
+            porters[name]._date = porters_date;
+            if ('points' in _porters[i]) {
+               if (!('points' in porters[name]))
+                  porters[name].points = _porters[i].points;
+               if (porters[name].points.length != _porters[i].points.length) {
+                  porters[name].points = _porters[i].points;
+               } else {
+                  var _jk = true;
+                  for (var jk = 0; jk < _porters[i].points.length; jk++)
+                     if (_porters[i].points[jk]._id == porters[name].points[0]._id) {
+                        _jk = false;
+                        break;
+                     }
+                  if (_jk)
+                     porters[name].points = _porters[i].points;
+               }
+            } else {
+               delete porters[name]['points'];
+               delete porters[name]['at'];
+            }
+         }
+         for (name in porters) {
+            if (porters[name]._date != porters_date) {
+               if ('marker' in porters[name])
+                  porters[name].marker.remove();
+                  // porters[name].marker.setMap(null);
+               delete porters[name];
+            }
+         }
+         porters_date = 1 - porters_date;
+         //
+         {% if 'vehicles' in request.args %}
+            var vehicles = {{ request.args['vehicles'][0] }};
+            if (vehicle_entrance) {
+               if (vehicles > _porters.length) {
+                  vehicles -= _porters.length;
+                  for (var vBulk = 0; vBulk < Math.min(vehicles, 5); vBulk++)
+                     $.post('/v0.2/client/sims/{{ hang }}/_/@_,_;@fastness={{ request.args['
+                        fastness '][0] if '
+                        fastness ' in request.args else 24 }};@play=' + ($('#sidebar-buttons').find('.pause.icon').length !== 0 ? 'true' : 'false'), {
+                           key: ractive.get('key')
+                        });
+               } else vehicle_entrance = false;
+            }
+         {% endif %}
+         ractive.set('porters_date', porters_date);
+         ractive.update('porters');
+      });
+
+      {% if 'status' not in request.args or request.args['status'][0] != 'false' %}
+         $.post('/v0.2/client/sims/{{ hang }}/@status', {
+            key: key
+         }, function(status) {
+            ractive.set('s', status.s);
+            ractive.set('m', status.m);
+            ractive.set('its', status.its);
+            ractive.set('batches', status.batches);
+         })
+         if (four_modulus == 0)
+            $.post('/v0.2/!!/{{ hang }}/@late=0;@limit=10?key=' + ractive.get('key'), function(response) {
+               ractive.set('late', ractive.get('late') + response.late);
+            });
+         four_modulus = (four_modulus + 1) % 4;
+      {% endif %}
+
+   }, 2500);
+   var order = $('<div style="margin-top: .7em; cursor: pointer" class="ui map big blue circular icon button"><i style="margin-left: -5px !important" class="dropbox icon"></i><i style="font-size: .5em; margin-right: -6px !important; margin-left: 3px !important; vertical-align: top" class="plus icon"></i></div>');
+   var porter = $('<div style="margin-top: .3em; cursor: pointer" class="ui map big red circular icon button"><i style="margin-left: -7px !important" class="motorcycle icon"></i><i style="font-size: .5em; margin-right: -8px !important; margin-left: 7px !important; vertical-align: top" class="plus icon"></i></div>');
+   var state = 0;
+   var head;
+
+   function on(element) {
+      element.html('<i class="times icon">');
+      map.dragging.disable();
+      map.scrollWheelZoom.disable();
+      $('#map').css('cursor', 'crosshair');
+      $('#map.leaflet-dragging .leaflet-grab').css('cursor', 'crosshair');
+   }
+
+   function un(element, icon) {
+      element.html('<i style="margin-left: -7px !important" class="' + icon + ' icon"></i><i style="font-size: .5em; margin-right: -8px !important; margin-left: 7px !important; vertical-align: top" class="plus icon"></i>');
+      map.dragging.enable();
+      map.scrollWheelZoom.enable();
+      $('#map').css('cursor', '');
+      $('#map.leaflet-dragging .leaflet-grab').css('cursor', '');
+   }
+   porter.bind('click', function(eve) {
+      if (state == 0) {
+         state = 1;
+         on(porter);
+      } else if (state == 1) {
+         state = 0;
+         un(porter, 'motorcycle');
+      }
+      eve.stopPropagation();
+   });
+
+   order.bind('click', function(eve) {
+      if (state == 0) {
+         state = 2;
+         on(order);
+      } else if (state == 2 || state == 3) {
+         un(order, 'dropbox');
+         state = 0;
+      }
+      eve.stopPropagation();
+   });
+   var leaflet_order =  L.Control.extend({
+
+     options: {
+       position: 'topright'
+     },
+
+     onAdd: function (map) {
+       var container = L.DomUtil.create('div');
+       container.style.marginRight = 0;
+       container.style.marginTop = 0;
+       container.appendChild(order[0]);
+       return container;
+     }
+   });
+   var leaflet_porter =  L.Control.extend({
+
+     options: {
+       position: 'topright'
+     },
+
+     onAdd: function (map) {
+       var container = L.DomUtil.create('div');
+       container.style.marginRight = 0;
+       container.style.marginTop = 0;
+       container.appendChild(porter[0]);
+       return container;
+     },
+   });
+   map.addControl(new leaflet_order());
+   map.addControl(new leaflet_porter());
+   map.on('click', function(event) {
+      latLng = event.latlng;
+      if (state == 1) {
+         $.post('/v0.2/client/sims/{{ hang }}/_/@' + latLng.lat + ',' + latLng.lng + ';@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else 24 }}', {
+            key: ractive.get('key')
+         }, function() {});
+         state = 0;
+         un(porter, 'motorcycle');
+      }
+      if (state == 3) {
+         $.post('/v0.2/{{ hang }}/~' + head.lat + ',' + head.lng + ';' + latLng.lat + ',' + latLng.lng + '{{ ('?auto=' + request.args['auto'][0]) if 'auto' in request.args else '' }}', data={
+            'key': key,
+            'volume': 1,
+            'priority': 1,
+            'delay': 0,
+            head: 0,
+            tail: parseInt(3600 * 2 / {{ request.args['fastness'][0] if 'fastness' in request.args else 24 }}),
+            territory: 1,
+         });
+         un(order, 'dropbox');
+         state = 0;
+      }
+      if (state == 2) {
+         head = latLng;
+         state = 3;
+      }
+      return false;
+   });
+
+/* ####### end ####### */
+
+function lock() {
+   ractive.set('lock', true);
+   delete window['porters'];
+   delete window['paths'];
+   if (window.patching)
+      window.patchingInterval = setInterval(function() {
+         ractive.fire('algorithm');
+      }, 8 * 60 * 1000 / {{ request.args['fastness'][0] if 'fastness' in request.args else 24 }});
+}
+
+function unlock() {
+   ractive.set('lock', false);
+   clearInterval(window.patchingInterval);
+}
+
+ractive.on('evaluate', function() {
+   $.post('/v0.2/{{ hang }}/!!!/@fastness={{ request.args['fastness'][0] if 'fastness' in request.args else 24 }};@capacity=' + window.capacity, {
+      key: ractive.get('key'),
+      paths: JSON.stringify(window._paths)
+   }, function(scores) {
+      console.log(scores);
+      ractive.set('scores', scores);
+   });
+});
+
+ractive.on('notify', function(_, method) {
+   console.log(method);
+   var matches = [];
+   var paths = window.paths;
+   var porters = {};
+   var _porters = [];
+   window.porters.map(function(p) {
+      porters[p.porter] = p;
+   });
+   for(var i=0;i<paths.length;i++) {
+      matches.push([porters[paths[i].porters[0].porter], [paths[i]]]);
+      _porters.push(paths[i].porters[0]);
+      paths[i].porters = [];
+   }
+   // here
+   matches_string = JSON.stringify(matches);
+   var _paths = [];
+   paths.map(function(path) {
+      var points = path.points;
+      delete path['points'];
+      for (var i=0;i<points.length / 2;i++) {
+         var _path = JSON.parse(JSON.stringify(path));
+         _path.points = [points[i], points[points.length - i - 1]];
+         _path._id = _path.points[0]._id;
+         _paths.push(_path);
+      }
+      path.points = points;
+   });
+   console.log(_paths);
+   paths_string = JSON.stringify(_paths);
+   for(var i=0;i<paths.length;i++) paths[i].porters = [_porters[i]];
+   $.post('/v0.2/!!/{{hang}}/paths', {
+      key: ractive.get('key'),
+      paths: paths_string,
+   }, function(response) {
+      if(response.SUCCESS) {
+         $.post('/v0.2/{{ hang }}/!!!/' + method, {
+            key: ractive.get('key'),
+            matches: matches_string,
+         }, function(response) {});
+      }
+   });
+});
+
+ractive.on('download', function() {
+   var max_m = 0;
+   var data = window.paths.map((path, idx) => {
+      var row = [path.porters[0].porter, 'depot'];
+      for (var i = path.points.length - 1; i * 2 >= path.points.length; i --)
+         row.push(path.points[i].id + '');
+      row.push('depot');
+      max_m = Math.max(max_m, row.length);
+      return row.map((item) => {return {
+         value: item,
+         type: 'string',
+      };});
+   });
+   for (var i = 0; i < data.length; i ++)
+      while (data[i].length != max_m) data[i].push({
+         value: '',
+         type: 'string',
+      })
+   data = data[0].map((col, i) => data.map(row => row[i]));
+   config = {
+     filename: 'paths',
+     sheet: {
+       data: data
+     }
+   };
+   zipcelx(config);
+});
+
+ractive.on('upload', function() {
+   $('#orders-upload').trigger('click');
+});
+
+$("#orders-upload").change(function() {
+   // get file
+   // ajax
+   // show path
+   var formData = new FormData();
+   formData.append('paths', $(this)[0].files[0]);
+   $(this).val('');
+   formData.append('key', ractive.get('key'));
+   $.ajax({
+      url: 'sims/' + ractive.get('hang') + '/@upload',
+      type: 'POST',
+      data: formData,
+      processData: false, // tell jQuery not to process the data
+      contentType: false, // tell jQuery not to set contentType
+      success: function(paths) {
+         window.forcePaths = paths;
+         window.forceCallback = function(matches) {
+            window.porters = [];
+            window.paths = [];
+            for (var i = 0; i < matches.length; i++) {
+               var porter = matches[i][0];
+               var firstPath = matches[i][1][0];
+               porter['points'] = firstPath['points'].filter(function(point) {
+                  return '_date' in point ? true : false
+               }).map(function(point) {
+                  return {
+                     '_id': point['_id']
+                  }
+               });
+               firstPath['porters'].push({
+                  'porter': porter['porter'],
+                  '_date': porter['_date'],
+                  'ack': true,
+                  'location': porter['location'],
+                  'price': 'offer' in firstPath ? firstPath['offer'] : 0
+               }, )
+               window.porters.push(porter);
+               window.paths.push(firstPath);
+            }
+            // console.log('hog');
+            // console.log(window.paths);
+         };
+         ractive.fire('algorithm');
+      }
+   });
+});
+
+    $(function() {
+        unlock();
+    })
+</script>
+{% endblock %}
