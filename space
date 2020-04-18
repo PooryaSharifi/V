@@ -1,0 +1,49 @@
+http://localhost:5000/v0.2/client/@v8?play=true&status=true&auto=true&vehicles=10&algorithm=_lkh&fastness=17&patching=true&ordering=true&rate=1
+http://localhost:5000/v0.2/client/@v?play=true&status=true&auto=true&vehicles=10&algorithm=hng&fastness=17&patching=true&ordering=true&rate=1
+https://github.com/cheind/py-lapsolver
+https://developers.google.com/optimization/routing/cvrptw
+
+wise:
+  #2intersting: https://www.wisesystems.com/articles
+  #2benefits: #1 for now together homepage + benefits
+    h1, h2 of (title of homepage), machine learning
+    my currently features
+    https://www.wisesystems.com/benefits
+
+#* demo clock with fastness
+
+extra notifications:
+  porters they may think network is not fair for matching -> but they are wrong they just see their affection of their movements we notify them how to play
+  lazy
+  fake
+  weather
+  money
+
+#U voronoi endpoint (territory is a user), endpoint for custom voronoi for each hang
+#U assert if late they alert
+#? do model mali ye kish hoquq mahane, hoquq bar sare kare anjam shode -> k <-
+#U force
+    خود اولیوت دادن به مسیر ها ته کی اچ
+    both hng & fng need a force parameter, these paths must deliver.
+    if forces > porters -> regular hng else hng(porters, forces) + hng(remained, remained_paths)
+#U when hold shift add territory + same territory
+#U depo time window
+#U https://medium.com/@pyk/a-guide-to-instrument-sanic-application-part-1-193b3eb403a
+
+####################
+ |                |
+ |      here      |
+ |                |
+####################
+
+app (V, VS)
+    react native messenger on V + voice-call
+    react native null user in v app
+    https://github.com/mauron85/react-native-background-geolocation -> daily velocity
+
+cng ???
+->
+
+kd query nearest -> nearest to line -> get color of the point (3) -> highway (5) -> light (1) -> so no neural these are 30 ways so speeds [light * 15 + color * 5 + highway] made it.
+
+familiarity -> can compile flann on life -> in one of them load data from fs -> query to familiarity -> add it to d[][]

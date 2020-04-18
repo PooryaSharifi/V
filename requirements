@@ -1,0 +1,17 @@
+aiofcm
+keras
+numpy
+aiohttp
+jinja2
+keras
+scipy
+pandas
+motor
+sanic
+twofish
+rtree
+geopy
+aiofile
+sklearn
+hdbscan
+opencv-python
